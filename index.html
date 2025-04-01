@@ -1,1 +1,171 @@
-111
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>原稿紙工具</title>
+    <style>
+        .page {
+            margin: 20px;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .grid td {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            border: 1px solid #ccc;
+        }
+        .grid input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+        }
+        #controls {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="add-page">新增頁面</button>
+        <button id="export-pdf">導出PDF</button>
+        <button id="export-txt">導出文字</button>
+    </div>
+    <div id="manuscript">
+        <!-- 頁面將動態添加 -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+        const rows = 20;
+        const cols = 20;
+        const manuscript = document.getElementById('manuscript');
+        let pageCount = 0;
+
+        // 添加新頁面
+        function addPage() {
+            pageCount++;
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.dataset.page = pageCount;
+            const table = document.createElement('table');
+            table.className = 'grid';
+            for (let row = 1; row <= rows; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 1; col <= cols; col++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    input.dataset.page = pageCount;
+                    input.dataset.row = row;
+                    input.dataset.col = col;
+                    input.oninput = function() {
+                        let currentPage = parseInt(this.dataset.page);
+                        let nextCol = parseInt(col) + 1;
+                        let nextRow = row;
+                        let nextPage = currentPage;
+                        if (nextCol > cols) {
+                            nextCol = 1;
+                            nextRow = row + 1;
+                            if (nextRow > rows) {
+                                nextRow = 1;
+                                nextPage = currentPage + 1;
+                                if (nextPage > pageCount) {
+                                    addPage();
+                                }
+                            }
+                        }
+                        const nextInput = document.querySelector(
+                            `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+                        );
+                        if (nextInput) nextInput.focus();
+                    };
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            pageDiv.appendChild(table);
+            manuscript.appendChild(pageDiv);
+        }
+
+        // 初始化第一頁
+        addPage();
+
+        // 新增頁面按鈕
+        document.getElementById('add-page').addEventListener('click', addPage);
+
+        // 導出PDF
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            const doc = new jsPDF();
+            const cellSize = 27; // pt
+            let currentY = 0;
+
+            for (let page = 1; page <= pageCount; page++) {
+                if (page > 1) {
+                    doc.addPage();
+                    currentY = 0;
+                }
+                // 繪製網格線
+                doc.setLineWidth(0.5);
+                for (let i = 0; i <= rows; i++) {
+                    doc.line(0, currentY + i * cellSize, cols * cellSize, currentY + i * cellSize);
+                }
+                for (let j = 0; j <= cols; j++) {
+                    doc.line(j * cellSize, currentY, j * cellSize, currentY + rows * cellSize);
+                }
+                // 繪製文字
+                doc.setFontSize(12);
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        const text = input.value;
+                        if (text) {
+                            const x = (col - 1) * cellSize + cellSize / 2;
+                            const y = currentY + (row - 1) * cellSize + cellSize / 2;
+                            doc.text(text, x, y, { align: 'center' });
+                        }
+                    }
+                }
+                currentY += rows * cellSize + 20; // 頁面間距
+            }
+            doc.save('manuscript.pdf');
+        });
+
+        // 導出文字
+        document.getElementById('export-txt').addEventListener('click', function() {
+            let text = '';
+            for (let page = 1; page <= pageCount; page++) {
+                for (let row = 1; row <= rows; row++) {
+                    let line = '';
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        line += input.value || '';
+                    }
+                    if (line.trim()) {
+                        text += line + '\n';
+                    } else {
+                        text += '\n';
+                    }
+                }
+                if (page < pageCount) text += '\n'; // 頁面間分隔
+            }
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manuscript.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
