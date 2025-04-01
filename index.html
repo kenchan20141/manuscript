@@ -114,6 +114,15 @@
         const wordCountDiv = document.getElementById('word-count');
         let pageCount = 0;
         let totalWords = 0;
+        let fontData;
+
+        // 加載中文字體 (假設字體檔案在同一目錄下)
+        fetch('NotoSansCJKsc-Regular.ttf')
+            .then(response => response.arrayBuffer())
+            .then(data => {
+                fontData = data;
+            })
+            .catch(err => console.error('字體加載失敗:', err));
 
         // 獲取頁面行數
         function getRows(page) {
@@ -316,6 +325,14 @@
         // 導出PDF
         document.getElementById('export-pdf').addEventListener('click', function() {
             const doc = new jsPDF();
+            if (fontData) {
+                doc.addFileToVFS('NotoSansCJKsc-Regular.ttf', fontData);
+                doc.addFont('NotoSansCJKsc-Regular.ttf', 'NotoSansCJK', 'normal');
+                doc.setFont('NotoSansCJK');
+            } else {
+                alert('字體尚未加載完成，請稍後再試！');
+                return;
+            }
             const cellSize = 10; // pt
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
