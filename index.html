@@ -62,12 +62,11 @@
             width: 100%;
         }
         .grid td {
-            width: 5%;
-            height: 0;
-            padding-bottom: 5%;
+            width: 5%; /* 控制寬度 */
+            aspect-ratio: 1 / 1; /* 強制1:1比例，確保為正方形 */
             border: 1px solid #ccc;
             position: relative;
-            box-sizing: border-box; /* 確保尺寸計算正確 */
+            box-sizing: border-box;
         }
         .grid input {
             width: 100%;
@@ -77,9 +76,9 @@
             font-size: 16px;
             outline: none;
             background: transparent;
-            box-sizing: border-box; /* 確保尺寸計算正確 */
-            padding: 0; /* 移除內邊距 */
-            line-height: 1; /* 調整行高以避免溢出 */
+            box-sizing: border-box;
+            padding: 0;
+            line-height: 1;
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
