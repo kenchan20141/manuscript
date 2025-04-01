@@ -36,11 +36,11 @@
             background-color: #45a049;
         }
         .copy-btn {
-            background-color: #2196F3;
+            background-color: #2196F3; /* 藍色 */
             color: white;
         }
         .copy-btn:hover {
-            background-color: #1e87db;
+            background-color: #1e87db; /* 懸停時深藍色 */
         }
         .page {
             margin: 0 auto 10px;
@@ -64,10 +64,9 @@
         .grid td {
             width: 5%;
             height: 0;
-            padding-bottom: 5%; /* 保持正方形 */
+            padding-bottom: 5%;
             border: 1px solid #ccc;
             position: relative;
-            box-sizing: border-box; /* 確保邊框不影響尺寸 */
         }
         .grid input {
             position: absolute;
@@ -80,8 +79,6 @@
             font-size: 16px;
             outline: none;
             background: transparent;
-            line-height: 100%; /* 使文字垂直居中 */
-            box-sizing: border-box; /* 確保內邊距和邊框不影響尺寸 */
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
@@ -335,10 +332,10 @@
         }
         loadManuscript();
 
-        // 一鍵複製全文
+        // 一鍵複製全文（調整分段邏輯）
         document.getElementById('copy-all').addEventListener('click', function() {
             let text = '';
-            let isNewParagraph = true;
+            let isNewParagraph = true; // 假設第一行是新段落
             for (let page = 1; page <= pageCount; page++) {
                 const rows = getRows(page);
                 const cols = getCols();
@@ -355,20 +352,21 @@
                             isEmptyFirstTwo = false;
                         }
                     }
+                    // 去除行尾空白字符
                     line = line.trimEnd();
                     if (line) {
                         if (isNewParagraph && isEmptyFirstTwo) {
-                            text += '\n';
+                            text += '\n'; // 新段落前添加換行符
                         }
                         text += line + '\n';
                         isNewParagraph = isEmptyFirstTwo;
                     } else {
                         text += '\n';
-                        isNewParagraph = true;
+                        isNewParagraph = true; // 空行後視為新段落
                     }
                 }
                 if (page < pageCount) {
-                    text += '\n';
+                    text += '\n'; // 頁面之間添加額外換行符
                 }
             }
             navigator.clipboard.writeText(text).then(() => {
