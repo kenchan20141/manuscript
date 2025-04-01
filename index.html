@@ -2,28 +2,61 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>原稿紙工具</title>
+    <title>美化版原稿紙工具</title>
     <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #controls button {
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin: 0 10px;
+            transition: background-color 0.3s;
+        }
+        #controls button:hover {
+            background-color: #45a049;
+        }
         .page {
-            margin: 20px;
-            display: inline-block;
-            vertical-align: top;
+            margin: 0 auto 20px;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            width: 800px;
+        }
+        .grid {
+            border-collapse: collapse;
+            margin: 0 auto;
         }
         .grid td {
-            width: 20px;
-            height: 20px;
-            padding: 0;
+            width: 30px;
+            height: 30px;
             border: 1px solid #ccc;
+            padding: 0;
         }
         .grid input {
             width: 100%;
             height: 100%;
             border: none;
             text-align: center;
-            font-size: 16px;
+            font-size: 18px;
+            outline: none;
+            background: transparent;
         }
-        #controls {
-            margin: 20px;
+        .grid input:focus {
+            border: 1px solid #4CAF50;
         }
     </style>
 </head>
@@ -63,27 +96,17 @@
                     input.dataset.page = pageCount;
                     input.dataset.row = row;
                     input.dataset.col = col;
-                    input.oninput = function() {
-                        let currentPage = parseInt(this.dataset.page);
-                        let nextCol = parseInt(col) + 1;
-                        let nextRow = row;
-                        let nextPage = currentPage;
-                        if (nextCol > cols) {
-                            nextCol = 1;
-                            nextRow = row + 1;
-                            if (nextRow > rows) {
-                                nextRow = 1;
-                                nextPage = currentPage + 1;
-                                if (nextPage > pageCount) {
-                                    addPage();
-                                }
-                            }
+                    // 支援中文輸入法
+                    input.addEventListener('compositionend', function() {
+                        if (this.value.length === 1) {
+                            moveToNextInput(this);
                         }
-                        const nextInput = document.querySelector(
-                            `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
-                        );
-                        if (nextInput) nextInput.focus();
-                    };
+                    });
+                    input.addEventListener('input', function(e) {
+                        if (this.value.length === 1 && !e.isComposing) {
+                            moveToNextInput(this);
+                        }
+                    });
                     td.appendChild(input);
                     tr.appendChild(td);
                 }
@@ -91,6 +114,31 @@
             }
             pageDiv.appendChild(table);
             manuscript.appendChild(pageDiv);
+        }
+
+        // 移動到下一個輸入框
+        function moveToNextInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let nextCol = currentCol + 1;
+            let nextRow = currentRow;
+            let nextPage = currentPage;
+            if (nextCol > cols) {
+                nextCol = 1;
+                nextRow = currentRow + 1;
+                if (nextRow > rows) {
+                    nextRow = 1;
+                    nextPage = currentPage + 1;
+                    if (nextPage > pageCount) {
+                        addPage();
+                    }
+                }
+            }
+            const nextInput = document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+            );
+            if (nextInput) nextInput.focus();
         }
 
         // 初始化第一頁
@@ -102,21 +150,25 @@
         // 導出PDF
         document.getElementById('export-pdf').addEventListener('click', function() {
             const doc = new jsPDF();
-            const cellSize = 27; // pt
-            let currentY = 0;
+            const cellSize = 10; // pt
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const gridWidth = cols * cellSize;
+            const gridHeight = rows * cellSize;
+            const marginX = (pageWidth - gridWidth) / 2;
+            const marginY = 20;
 
             for (let page = 1; page <= pageCount; page++) {
-                if (page > 1) {
-                    doc.addPage();
-                    currentY = 0;
-                }
+                if (page > 1) doc.addPage();
                 // 繪製網格線
                 doc.setLineWidth(0.5);
                 for (let i = 0; i <= rows; i++) {
-                    doc.line(0, currentY + i * cellSize, cols * cellSize, currentY + i * cellSize);
+                    const y = marginY + i * cellSize;
+                    doc.line(marginX, y, marginX + gridWidth, y);
                 }
                 for (let j = 0; j <= cols; j++) {
-                    doc.line(j * cellSize, currentY, j * cellSize, currentY + rows * cellSize);
+                    const x = marginX + j * cellSize;
+                    doc.line(x, marginY, x, marginY + gridHeight);
                 }
                 // 繪製文字
                 doc.setFontSize(12);
@@ -127,13 +179,12 @@
                         );
                         const text = input.value;
                         if (text) {
-                            const x = (col - 1) * cellSize + cellSize / 2;
-                            const y = currentY + (row - 1) * cellSize + cellSize / 2;
+                            const x = marginX + (col - 1) * cellSize + cellSize / 2;
+                            const y = marginY + (row - 1) * cellSize + cellSize / 2 + 2; // 微調文字位置
                             doc.text(text, x, y, { align: 'center' });
                         }
                     }
                 }
-                currentY += rows * cellSize + 20; // 頁面間距
             }
             doc.save('manuscript.pdf');
         });
@@ -150,13 +201,10 @@
                         );
                         line += input.value || '';
                     }
-                    if (line.trim()) {
-                        text += line + '\n';
-                    } else {
-                        text += '\n';
-                    }
+                    if (line.trim()) text += line + '\n';
+                    else text += '\n';
                 }
-                if (page < pageCount) text += '\n'; // 頁面間分隔
+                if (page < pageCount) text += '\n';
             }
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
