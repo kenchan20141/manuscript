@@ -116,13 +116,22 @@
         let totalWords = 0;
         let fontData;
 
-        // 加載中文字體 (假設字體檔案在同一目錄下)
+        // 加載中文字體
         fetch('NotoSansCJKsc-Regular.ttf')
-            .then(response => response.arrayBuffer())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('字體加載失敗');
+                }
+                return response.arrayBuffer();
+            })
             .then(data => {
                 fontData = data;
+                console.log('字體加載成功');
             })
-            .catch(err => console.error('字體加載失敗:', err));
+            .catch(err => {
+                console.error('字體加載失敗:', err);
+                alert('字體加載失敗，請確保字體文件「NotoSansCJKsc-Regular.ttf」存在並可訪問。');
+            });
 
         // 獲取頁面行數
         function getRows(page) {
@@ -324,15 +333,14 @@
 
         // 導出PDF
         document.getElementById('export-pdf').addEventListener('click', function() {
-            const doc = new jsPDF();
-            if (fontData) {
-                doc.addFileToVFS('NotoSansCJKsc-Regular.ttf', fontData);
-                doc.addFont('NotoSansCJKsc-Regular.ttf', 'NotoSansCJK', 'normal');
-                doc.setFont('NotoSansCJK');
-            } else {
+            if (!fontData) {
                 alert('字體尚未加載完成，請稍後再試！');
                 return;
             }
+            const doc = new jsPDF();
+            doc.addFileToVFS('NotoSansCJKsc-Regular.ttf', fontData);
+            doc.addFont('NotoSansCJKsc-Regular.ttf', 'NotoSansCJK', 'normal');
+            doc.setFont('NotoSansCJK');
             const cellSize = 10; // pt
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
