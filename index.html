@@ -2,46 +2,62 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>美化版原稿紙工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文寫作</title>
     <style>
         body {
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
         #controls {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         #controls button {
-            padding: 12px 25px;
-            font-size: 16px;
+            padding: 10px 20px;
+            font-size: 14px;
             cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
             border: none;
             border-radius: 5px;
-            margin: 0 10px;
+            margin: 5px;
             transition: background-color 0.3s;
         }
-        #controls button:hover {
+        .action-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .action-btn:hover {
             background-color: #45a049;
         }
+        .export-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .export-btn:hover {
+            background-color: #1e87db;
+        }
         .page {
-            margin: 0 auto 20px;
-            padding: 20px;
+            margin: 0 auto 10px;
+            padding: 10px;
             background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
-            width: 800px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
         }
         .grid {
             border-collapse: collapse;
-            margin: 0 auto;
+            width: 100%;
         }
         .grid td {
-            width: 30px;
+            width: 5%;
             height: 30px;
             border: 1px solid #ccc;
             padding: 0;
@@ -51,7 +67,7 @@
             height: 100%;
             border: none;
             text-align: center;
-            font-size: 18px;
+            font-size: 16px;
             outline: none;
             background: transparent;
         }
@@ -62,9 +78,11 @@
 </head>
 <body>
     <div id="controls">
-        <button id="add-page">新增頁面</button>
-        <button id="export-pdf">導出PDF</button>
-        <button id="export-txt">導出文字</button>
+        <button id="save" class="action-btn">儲存</button>
+        <button id="clear" class="action-btn">清空</button>
+        <button id="add-page" class="action-btn">新增頁面</button>
+        <button id="export-pdf" class="export-btn">導出PDF</button>
+        <button id="export-txt" class="export-btn">導出文字</button>
     </div>
     <div id="manuscript">
         <!-- 頁面將動態添加 -->
@@ -73,17 +91,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
         const { jsPDF } = window.jspdf;
-        const rows = 20;
-        const cols = 20;
         const manuscript = document.getElementById('manuscript');
         let pageCount = 0;
+
+        // 獲取頁面行數
+        function getRows(page) {
+            return page % 2 === 1 ? 15 : 20;
+        }
+
+        // 獲取頁面列數
+        function getCols() {
+            return 20;
+        }
 
         // 添加新頁面
         function addPage() {
             pageCount++;
+            const rows = getRows(pageCount);
+            const cols = getCols();
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
             pageDiv.dataset.page = pageCount;
+            const title = document.createElement('div');
+            title.className = 'title';
+            title.textContent = '中文寫作';
+            pageDiv.appendChild(title);
             const table = document.createElement('table');
             table.className = 'grid';
             for (let row = 1; row <= rows; row++) {
@@ -107,6 +139,12 @@
                             moveToNextInput(this);
                         }
                     });
+                    // 刪除鍵功能
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value === '') {
+                            moveToPrevInput(this);
+                        }
+                    });
                     td.appendChild(input);
                     tr.appendChild(td);
                 }
@@ -124,6 +162,8 @@
             let nextCol = currentCol + 1;
             let nextRow = currentRow;
             let nextPage = currentPage;
+            const cols = getCols();
+            const rows = getRows(currentPage);
             if (nextCol > cols) {
                 nextCol = 1;
                 nextRow = currentRow + 1;
@@ -141,11 +181,92 @@
             if (nextInput) nextInput.focus();
         }
 
+        // 移動到上一個輸入框並刪除內容
+        function moveToPrevInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let prevCol = currentCol - 1;
+            let prevRow = currentRow;
+            let prevPage = currentPage;
+            const cols = getCols();
+            if (prevCol < 1) {
+                prevCol = cols;
+                prevRow = currentRow - 1;
+                if (prevRow < 1) {
+                    prevRow = getRows(currentPage - 1);
+                    prevPage = currentPage - 1;
+                    if (prevPage < 1) return;
+                }
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
+            );
+            if (prevInput) {
+                prevInput.value = '';
+                prevInput.focus();
+            }
+        }
+
         // 初始化第一頁
         addPage();
 
         // 新增頁面按鈕
         document.getElementById('add-page').addEventListener('click', addPage);
+
+        // 儲存功能
+        document.getElementById('save').addEventListener('click', function() {
+            const data = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                const pageData = [];
+                for (let row = 1; row <= rows; row++) {
+                    const rowData = [];
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        rowData.push(input.value);
+                    }
+                    pageData.push(rowData);
+                }
+                data.push(pageData);
+            }
+            localStorage.setItem('manuscript', JSON.stringify(data));
+            alert('文章已儲存');
+        });
+
+        // 清空功能
+        document.getElementById('clear').addEventListener('click', function() {
+            if (confirm('確定要清空所有文字嗎？')) {
+                manuscript.innerHTML = '';
+                pageCount = 0;
+                addPage();
+                localStorage.removeItem('manuscript');
+            }
+        });
+
+        // 載入儲存的文章
+        function loadManuscript() {
+            const data = JSON.parse(localStorage.getItem('manuscript'));
+            if (data) {
+                data.forEach((pageData, pageIndex) => {
+                    if (pageIndex > 0) addPage();
+                    const rows = getRows(pageIndex + 1);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            const input = document.querySelector(
+                                `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            );
+                            input.value = pageData[row - 1][col - 1];
+                        }
+                    }
+                });
+            }
+        }
+        loadManuscript();
 
         // 導出PDF
         document.getElementById('export-pdf').addEventListener('click', function() {
@@ -153,13 +274,15 @@
             const cellSize = 10; // pt
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
-            const gridWidth = cols * cellSize;
-            const gridHeight = rows * cellSize;
-            const marginX = (pageWidth - gridWidth) / 2;
-            const marginY = 20;
 
             for (let page = 1; page <= pageCount; page++) {
                 if (page > 1) doc.addPage();
+                const rows = getRows(page);
+                const cols = getCols();
+                const gridWidth = cols * cellSize;
+                const gridHeight = rows * cellSize;
+                const marginX = (pageWidth - gridWidth) / 2;
+                const marginY = 20;
                 // 繪製網格線
                 doc.setLineWidth(0.5);
                 for (let i = 0; i <= rows; i++) {
@@ -180,7 +303,7 @@
                         const text = input.value;
                         if (text) {
                             const x = marginX + (col - 1) * cellSize + cellSize / 2;
-                            const y = marginY + (row - 1) * cellSize + cellSize / 2 + 2; // 微調文字位置
+                            const y = marginY + (row - 1) * cellSize + cellSize / 2 + 2;
                             doc.text(text, x, y, { align: 'center' });
                         }
                     }
@@ -193,6 +316,8 @@
         document.getElementById('export-txt').addEventListener('click', function() {
             let text = '';
             for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
                 for (let row = 1; row <= rows; row++) {
                     let line = '';
                     for (let col = 1; col <= cols; col++) {
