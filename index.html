@@ -10,7 +10,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
-            overflow: hidden; /* 防止頁面滾動 */
+            overflow: auto; /* 允許頁面滾動 */
         }
         #controls {
             text-align: center;
@@ -57,13 +57,14 @@
             margin-bottom: 10px;
         }
         .grid {
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0 2px; /* 行間距2px */
             width: 100%;
         }
         .grid td {
             width: 5%;
             height: 0;
-            padding-bottom: 5%; /* 使高度與寬度相等，保持正方形 */
+            padding-bottom: 5%; /* 保持正方形 */
             border: 1px solid #ccc;
             position: relative;
         }
@@ -82,6 +83,11 @@
         .grid input:focus {
             border: 1px solid #4CAF50;
         }
+        #word-count {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -99,12 +105,15 @@
     <div id="manuscript">
         <!-- 頁面將動態添加 -->
     </div>
+    <div id="word-count">字數：0</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
         const { jsPDF } = window.jspdf;
         const manuscript = document.getElementById('manuscript');
+        const wordCountDiv = document.getElementById('word-count');
         let pageCount = 0;
+        let totalWords = 0;
 
         // 獲取頁面行數
         function getRows(page) {
@@ -114,6 +123,24 @@
         // 獲取頁面列數
         function getCols() {
             return 20;
+        }
+
+        // 更新字數統計
+        function updateWordCount() {
+            totalWords = 0;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        if (input && input.value) totalWords++;
+                    }
+                }
+            }
+            wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
         // 添加新頁面
@@ -144,17 +171,20 @@
                     input.addEventListener('compositionend', function() {
                         if (this.value.length === 1) {
                             moveToNextInput(this);
+                            updateWordCount();
                         }
                     });
                     input.addEventListener('input', function(e) {
                         if (this.value.length === 1 && !e.isComposing) {
                             moveToNextInput(this);
+                            updateWordCount();
                         }
                     });
                     // 刪除鍵功能
                     input.addEventListener('keydown', function(e) {
                         if (e.key === 'Backspace' && this.value === '') {
                             moveToPrevInput(this);
+                            updateWordCount();
                         }
                     });
                     td.appendChild(input);
@@ -164,6 +194,7 @@
             }
             pageDiv.appendChild(table);
             manuscript.appendChild(pageDiv);
+            updateWordCount();
         }
 
         // 移動到下一個輸入框
@@ -256,6 +287,7 @@
                 pageCount = 0;
                 addPage();
                 localStorage.removeItem('manuscript');
+                updateWordCount();
             }
         });
 
@@ -276,6 +308,7 @@
                         }
                     }
                 });
+                updateWordCount();
             }
         }
         loadManuscript();
