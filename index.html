@@ -1,243 +1,381 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中文寫作原稿紙</title>
+    <title>中文寫作</title>
     <style>
         body {
-            font-family: 'KaiTi', serif; /* 使用楷體提升美觀性 */
-            overflow-y: scroll; /* 確保頁面可上下滾動 */
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
-            background-color: #f9f9f9; /* 淺灰背景 */
-        }
-        h1 {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .page {
-            display: grid;
-            grid-template-columns: repeat(20, 1fr); /* 每行20格 */
-            gap: 2px; /* 行間窄小空行 */
-            margin-bottom: 20px;
-            background-color: #fff;
-            padding: 10px;
-            border: 1px solid #ddd; /* 頁面邊框 */
-            border-radius: 5px;
-        }
-        .cell {
-            width: 20px;
-            height: 20px; /* 保持正方形 */
-            border: 1px solid #ccc; /* 方格邊框 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            box-sizing: border-box;
-            background-color: #fff;
-        }
-        /* 手機適配 */
-        @media (max-width: 600px) {
-            .cell {
-                width: 15px;
-                height: 15px;
-                font-size: 12px;
-            }
-            h1 {
-                font-size: 20px;
-            }
+            overflow: auto; /* 允許頁面滾動 */
         }
         #controls {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
-        #controls button {
-            margin: 5px;
-            padding: 8px 12px;
+        .button-group {
+            margin-bottom: 10px;
+        }
+        .button-group button {
+            padding: 10px 20px;
             font-size: 14px;
+            cursor: pointer;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
         }
-        /* 第一組按鈕（綠色） */
-        #save, #clear, #add-page {
+        .action-btn {
             background-color: #4CAF50;
             color: white;
         }
-        /* 第二組按鈕（藍色） */
-        #export-pdf, #export-text {
-            background-color: #008CBA;
+        .action-btn:hover {
+            background-color: #45a049;
+        }
+        .export-btn {
+            background-color: #2196F3;
             color: white;
+        }
+        .export-btn:hover {
+            background-color: #1e87db;
+        }
+        .page {
+            margin: 0 auto 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .grid {
+            border-collapse: separate;
+            border-spacing: 0 2px; /* 行間距2px */
+            width: 100%;
+        }
+        .grid td {
+            width: 5%;
+            height: 0;
+            padding-bottom: 5%; /* 保持正方形 */
+            border: 1px solid #ccc;
+            position: relative;
+        }
+        .grid input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+            background: transparent;
+        }
+        .grid input:focus {
+            border: 1px solid #4CAF50;
         }
         #word-count {
             text-align: center;
-            font-size: 16px;
-            color: #666;
-            margin-top: 20px;
+            font-size: 14px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>中文寫作</h1>
-    <div id="pages"></div>
     <div id="controls">
-        <div>
-            <button id="add-page">新增頁面</button>
-            <button id="save">儲存</button>
-            <button id="clear">清空</button>
+        <div class="button-group">
+            <button id="save" class="action-btn">儲存</button>
+            <button id="clear" class="action-btn">清空</button>
+            <button id="add-page" class="action-btn">新增頁面</button>
         </div>
-        <div>
-            <button id="export-pdf">導出PDF</button>
-            <button id="export-text">導出文字</button>
+        <div class="button-group">
+            <button id="export-pdf" class="export-btn">導出PDF</button>
+            <button id="export-txt" class="export-btn">導出文字</button>
         </div>
+    </div>
+    <div id="manuscript">
+        <!-- 頁面將動態添加 -->
     </div>
     <div id="word-count">字數：0</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
-        // 創建原稿紙頁面
-        function createPage(pageNum) {
-            const page = document.createElement('div');
-            page.className = 'page';
-            const rows = pageNum % 2 === 1 ? 15 : 20; // 單數頁15行，偶數頁20行
-            for (let i = 0; i < rows * 20; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.contentEditable = true;
-                cell.addEventListener('input', handleInput);
-                cell.addEventListener('keydown', handleKeydown);
-                page.appendChild(cell);
-            }
-            return page;
+        const { jsPDF } = window.jspdf;
+        const manuscript = document.getElementById('manuscript');
+        const wordCountDiv = document.getElementById('word-count');
+        let pageCount = 0;
+        let totalWords = 0;
+
+        // 獲取頁面行數
+        function getRows(page) {
+            return page % 2 === 1 ? 15 : 20;
         }
 
-        // 處理輸入事件
-        function handleInput(e) {
-            const cell = e.target;
-            if (cell.textContent.length > 1) {
-                cell.textContent = cell.textContent[0]; // 限制每個格子一個字
-            }
-            const nextCell = cell.nextElementSibling;
-            if (nextCell) {
-                nextCell.focus();
-            } else {
-                const nextPage = cell.parentElement.nextElementSibling;
-                if (nextPage) {
-                    nextPage.firstElementChild.focus();
-                }
-            }
-            updateWordCount();
-        }
-
-        // 處理刪除鍵
-        function handleKeydown(e) {
-            if (e.key === 'Backspace' && e.target.textContent === '') {
-                const prevCell = e.target.previousElementSibling;
-                if (prevCell) {
-                    prevCell.textContent = '';
-                    prevCell.focus();
-                    updateWordCount();
-                }
-            }
+        // 獲取頁面列數
+        function getCols() {
+            return 20;
         }
 
         // 更新字數統計
         function updateWordCount() {
-            const pages = document.getElementById('pages');
-            let count = 0;
-            Array.from(pages.children).forEach(page => {
-                Array.from(page.children).forEach(cell => {
-                    if (cell.textContent.trim() !== '') count++;
-                });
-            });
-            document.getElementById('word-count').textContent = `字數：${count}`;
+            totalWords = 0;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        if (input && input.value) totalWords++;
+                    }
+                }
+            }
+            wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
-        // 新增頁面
-        document.getElementById('add-page').addEventListener('click', () => {
-            const pages = document.getElementById('pages');
-            const pageNum = pages.children.length + 1;
-            const newPage = createPage(pageNum);
-            pages.appendChild(newPage);
-            window.scrollTo(0, document.body.scrollHeight); // 滾動到最新頁面
-        });
-
-        // 儲存文章
-        document.getElementById('save').addEventListener('click', () => {
-            const pages = document.getElementById('pages');
-            const data = [];
-            Array.from(pages.children).forEach(page => {
-                const pageData = [];
-                Array.from(page.children).forEach(cell => {
-                    pageData.push(cell.textContent);
-                });
-                data.push(pageData);
-            });
-            localStorage.setItem('manuscript', JSON.stringify(data));
-            alert('已儲存');
-        });
-
-        // 清空文章
-        document.getElementById('clear').addEventListener('click', () => {
-            if (confirm('確定要清空所有文字嗎？')) {
-                const pages = document.getElementById('pages');
-                Array.from(pages.children).forEach(page => {
-                    Array.from(page.children).forEach(cell => {
-                        cell.textContent = '';
+        // 添加新頁面
+        function addPage() {
+            pageCount++;
+            const rows = getRows(pageCount);
+            const cols = getCols();
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.dataset.page = pageCount;
+            const title = document.createElement('div');
+            title.className = 'title';
+            title.textContent = '中文寫作';
+            pageDiv.appendChild(title);
+            const table = document.createElement('table');
+            table.className = 'grid';
+            for (let row = 1; row <= rows; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 1; col <= cols; col++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    input.dataset.page = pageCount;
+                    input.dataset.row = row;
+                    input.dataset.col = col;
+                    // 支援中文輸入法
+                    input.addEventListener('compositionend', function() {
+                        if (this.value.length === 1) {
+                            moveToNextInput(this);
+                            updateWordCount();
+                        }
                     });
-                });
+                    input.addEventListener('input', function(e) {
+                        if (this.value.length === 1 && !e.isComposing) {
+                            moveToNextInput(this);
+                            updateWordCount();
+                        }
+                    });
+                    // 刪除鍵功能
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value === '') {
+                            moveToPrevInput(this);
+                            updateWordCount();
+                        }
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            pageDiv.appendChild(table);
+            manuscript.appendChild(pageDiv);
+            updateWordCount();
+        }
+
+        // 移動到下一個輸入框
+        function moveToNextInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let nextCol = currentCol + 1;
+            let nextRow = currentRow;
+            let nextPage = currentPage;
+            const cols = getCols();
+            const rows = getRows(currentPage);
+            if (nextCol > cols) {
+                nextCol = 1;
+                nextRow = currentRow + 1;
+                if (nextRow > rows) {
+                    nextRow = 1;
+                    nextPage = currentPage + 1;
+                    if (nextPage > pageCount) {
+                        addPage();
+                    }
+                }
+            }
+            const nextInput = document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+            );
+            if (nextInput) nextInput.focus();
+        }
+
+        // 移動到上一個輸入框並刪除內容
+        function moveToPrevInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let prevCol = currentCol - 1;
+            let prevRow = currentRow;
+            let prevPage = currentPage;
+            const cols = getCols();
+            if (prevCol < 1) {
+                prevCol = cols;
+                prevRow = currentRow - 1;
+                if (prevRow < 1) {
+                    prevRow = getRows(currentPage - 1);
+                    prevPage = currentPage - 1;
+                    if (prevPage < 1) return;
+                }
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
+            );
+            if (prevInput) {
+                prevInput.value = '';
+                prevInput.focus();
+            }
+        }
+
+        // 初始化第一頁
+        addPage();
+
+        // 新增頁面按鈕
+        document.getElementById('add-page').addEventListener('click', addPage);
+
+        // 儲存功能
+        document.getElementById('save').addEventListener('click', function() {
+            const data = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                const pageData = [];
+                for (let row = 1; row <= rows; row++) {
+                    const rowData = [];
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        rowData.push(input.value);
+                    }
+                    pageData.push(rowData);
+                }
+                data.push(pageData);
+            }
+            localStorage.setItem('manuscript', JSON.stringify(data));
+            alert('文章已儲存');
+        });
+
+        // 清空功能
+        document.getElementById('clear').addEventListener('click', function() {
+            if (confirm('確定要清空所有文字嗎？')) {
+                manuscript.innerHTML = '';
+                pageCount = 0;
+                addPage();
+                localStorage.removeItem('manuscript');
                 updateWordCount();
             }
         });
 
-        // 導出PDF
-        document.getElementById('export-pdf').addEventListener('click', () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const pages = document.getElementById('pages');
-            let y = 10;
-            Array.from(pages.children).forEach((page, pageIndex) => {
-                if (pageIndex > 0) {
-                    doc.addPage();
-                    y = 10;
-                }
-                doc.setFont('KaiTi', 'normal'); // 設置楷體字型（需自行引入）
-                const rows = pageIndex % 2 === 0 ? 15 : 20;
-                for (let i = 0; i < rows; i++) {
-                    let line = '';
-                    for (let j = 0; j < 20; j++) {
-                        const cell = page.children[i * 20 + j];
-                        line += cell.textContent || ' ';
+        // 載入儲存的文章
+        function loadManuscript() {
+            const data = JSON.parse(localStorage.getItem('manuscript'));
+            if (data) {
+                data.forEach((pageData, pageIndex) => {
+                    if (pageIndex > 0) addPage();
+                    const rows = getRows(pageIndex + 1);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            const input = document.querySelector(
+                                `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            );
+                            input.value = pageData[row - 1][col - 1];
+                        }
                     }
-                    doc.text(line, 10, y);
-                    y += 10;
+                });
+                updateWordCount();
+            }
+        }
+        loadManuscript();
+
+        // 導出PDF
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            const doc = new jsPDF();
+            const cellSize = 10; // pt
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            for (let page = 1; page <= pageCount; page++) {
+                if (page > 1) doc.addPage();
+                const rows = getRows(page);
+                const cols = getCols();
+                const gridWidth = cols * cellSize;
+                const gridHeight = rows * cellSize;
+                const marginX = (pageWidth - gridWidth) / 2;
+                const marginY = 20;
+                // 繪製網格線
+                doc.setLineWidth(0.5);
+                for (let i = 0; i <= rows; i++) {
+                    const y = marginY + i * cellSize;
+                    doc.line(marginX, y, marginX + gridWidth, y);
                 }
-            });
+                for (let j = 0; j <= cols; j++) {
+                    const x = marginX + j * cellSize;
+                    doc.line(x, marginY, x, marginY + gridHeight);
+                }
+                // 繪製文字
+                doc.setFontSize(12);
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        const text = input.value;
+                        if (text) {
+                            const x = marginX + (col - 1) * cellSize + cellSize / 2;
+                            const y = marginY + (row - 1) * cellSize + cellSize / 2 + 2;
+                            doc.text(text, x, y, { align: 'center' });
+                        }
+                    }
+                }
+            }
             doc.save('manuscript.pdf');
         });
 
         // 導出文字
-        document.getElementById('export-text').addEventListener('click', () => {
-            const pages = document.getElementById('pages');
+        document.getElementById('export-txt').addEventListener('click', function() {
             let text = '';
-            Array.from(pages.children).forEach(page => {
-                const rows = page.children.length / 20;
-                for (let i = 0; i < rows; i++) {
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
                     let line = '';
-                    for (let j = 0; j < 20; j++) {
-                        const cell = page.children[i * 20 + j];
-                        line += cell.textContent || '';
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        line += input.value || '';
                     }
-                    text += line.trim() + '\n';
+                    if (line.trim()) text += line + '\n';
+                    else text += '\n';
                 }
-                text += '\n';
-            });
+                if (page < pageCount) text += '\n';
+            }
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -245,28 +383,6 @@
             a.download = 'manuscript.txt';
             a.click();
             URL.revokeObjectURL(url);
-        });
-
-        // 初始化頁面並載入儲存的文章
-        window.addEventListener('load', () => {
-            const pages = document.getElementById('pages');
-            const firstPage = createPage(1);
-            pages.appendChild(firstPage);
-            const savedData = localStorage.getItem('manuscript');
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                data.forEach((pageData, pageIndex) => {
-                    if (pageIndex > 0) {
-                        const newPage = createPage(pageIndex + 1);
-                        pages.appendChild(newPage);
-                    }
-                    const page = pages.children[pageIndex];
-                    pageData.forEach((text, cellIndex) => {
-                        page.children[cellIndex].textContent = text;
-                    });
-                });
-                updateWordCount();
-            }
         });
     </script>
 </body>
