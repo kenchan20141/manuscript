@@ -36,11 +36,11 @@
             background-color: #45a049;
         }
         .copy-btn {
-            background-color: #2196F3; /* 藍色 */
+            background-color: #2196F3;
             color: white;
         }
         .copy-btn:hover {
-            background-color: #1e87db; /* 懸停時深藍色 */
+            background-color: #1e87db;
         }
         .page {
             margin: 0 auto 10px;
@@ -62,8 +62,8 @@
             width: 100%;
         }
         .grid td {
-            width: 5%; /* 控制寬度 */
-            aspect-ratio: 1 / 1; /* 強制1:1比例，確保為正方形 */
+            width: 5%;
+            aspect-ratio: 1 / 1;
             border: 1px solid #ccc;
             position: relative;
             box-sizing: border-box;
@@ -195,18 +195,23 @@
         // 處理輸入（支援多字元）
         function handleInput(currentInput) {
             const value = currentInput.value;
-            if (value.length > 1) {
+            if (value.length > 0) {
                 const chars = value.split('');
                 let input = currentInput;
                 for (let char of chars) {
                     input.value = char;
                     updateWordCount();
-                    input = getNextInput(input);
-                    if (!input) break;
+                    let nextInput = getNextInput(input);
+                    if (!nextInput) {
+                        addPage();
+                        nextInput = getNextInput(input);
+                    }
+                    input = nextInput;
                 }
-                if (input) input.focus();
-            } else if (value.length === 1) {
-                moveToNextInput(currentInput);
+                if (input) {
+                    input.focus();
+                }
+            } else {
                 updateWordCount();
             }
         }
@@ -235,12 +240,6 @@
             return document.querySelector(
                 `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
             );
-        }
-
-        // 移動到下一個輸入框
-        function moveToNextInput(currentInput) {
-            const nextInput = getNextInput(currentInput);
-            if (nextInput) nextInput.focus();
         }
 
         // 移動到上一個輸入框並刪除內容
@@ -332,10 +331,10 @@
         }
         loadManuscript();
 
-        // 一鍵複製全文（調整分段邏輯）
+        // 一鍵複製全文
         document.getElementById('copy-all').addEventListener('click', function() {
             let text = '';
-            let isNewParagraph = true; // 假設第一行是新段落
+            let isNewParagraph = true;
             for (let page = 1; page <= pageCount; page++) {
                 const rows = getRows(page);
                 const cols = getCols();
@@ -352,21 +351,20 @@
                             isEmptyFirstTwo = false;
                         }
                     }
-                    // 去除行尾空白字符
                     line = line.trimEnd();
                     if (line) {
                         if (isNewParagraph && isEmptyFirstTwo) {
-                            text += '\n'; // 新段落前添加換行符
+                            text += '\n';
                         }
                         text += line + '\n';
                         isNewParagraph = isEmptyFirstTwo;
                     } else {
                         text += '\n';
-                        isNewParagraph = true; // 空行後視為新段落
+                        isNewParagraph = true;
                     }
                 }
                 if (page < pageCount) {
-                    text += '\n'; // 頁面之間添加額外換行符
+                    text += '\n';
                 }
             }
             navigator.clipboard.writeText(text).then(() => {
