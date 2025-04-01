@@ -10,7 +10,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
-            overflow: auto; /* 允許頁面滾動 */
+            overflow: auto;
         }
         #controls {
             text-align: center;
@@ -35,6 +35,13 @@
         .action-btn:hover {
             background-color: #45a049;
         }
+        .copy-btn {
+            background-color: #2196F3; /* 藍色 */
+            color: white;
+        }
+        .copy-btn:hover {
+            background-color: #1e87db; /* 懸停時深藍色 */
+        }
         .page {
             margin: 0 auto 10px;
             padding: 10px;
@@ -51,13 +58,13 @@
         }
         .grid {
             border-collapse: separate;
-            border-spacing: 0 2px; /* 行間距2px */
+            border-spacing: 0 2px;
             width: 100%;
         }
         .grid td {
             width: 5%;
             height: 0;
-            padding-bottom: 5%; /* 保持正方形 */
+            padding-bottom: 5%;
             border: 1px solid #ccc;
             position: relative;
         }
@@ -89,7 +96,7 @@
             <button id="save" class="action-btn">儲存</button>
             <button id="clear" class="action-btn">清空</button>
             <button id="add-page" class="action-btn">新增頁面</button>
-            <button id="copy-all" class="action-btn">一鍵複製全文</button>
+            <button id="copy-all" class="copy-btn">一鍵複製全文</button>
         </div>
     </div>
     <div id="manuscript">
@@ -155,17 +162,17 @@
                     input.dataset.page = pageCount;
                     input.dataset.row = row;
                     input.dataset.col = col;
-                    // 支援中文輸入法
-                    input.addEventListener('compositionend', function() {
-                        if (this.value.length === 1) {
-                            moveToNextInput(this);
-                            updateWordCount();
-                        }
+                    // 支援中文輸入法與多字元輸入
+                    input.addEventListener('compositionstart', function() {
+                        this.isComposing = true;
                     });
-                    input.addEventListener('input', function(e) {
-                        if (this.value.length === 1 && !e.isComposing) {
-                            moveToNextInput(this);
-                            updateWordCount();
+                    input.addEventListener('compositionend', function() {
+                        this.isComposing = false;
+                        handleInput(this);
+                    });
+                    input.addEventListener('input', function() {
+                        if (!this.isComposing) {
+                            handleInput(this);
                         }
                     });
                     // 刪除鍵功能
@@ -185,8 +192,27 @@
             updateWordCount();
         }
 
-        // 移動到下一個輸入框
-        function moveToNextInput(currentInput) {
+        // 處理輸入（支援多字元）
+        function handleInput(currentInput) {
+            const value = currentInput.value;
+            if (value.length > 1) {
+                const chars = value.split('');
+                let input = currentInput;
+                for (let char of chars) {
+                    input.value = char;
+                    updateWordCount();
+                    input = getNextInput(input);
+                    if (!input) break;
+                }
+                if (input) input.focus();
+            } else if (value.length === 1) {
+                moveToNextInput(currentInput);
+                updateWordCount();
+            }
+        }
+
+        // 獲取下一個輸入框
+        function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
             let currentRow = parseInt(currentInput.dataset.row);
             let currentCol = parseInt(currentInput.dataset.col);
@@ -206,9 +232,14 @@
                     }
                 }
             }
-            const nextInput = document.querySelector(
+            return document.querySelector(
                 `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
             );
+        }
+
+        // 移動到下一個輸入框
+        function moveToNextInput(currentInput) {
+            const nextInput = getNextInput(currentInput);
             if (nextInput) nextInput.focus();
         }
 
@@ -301,23 +332,38 @@
         }
         loadManuscript();
 
-        // 一鍵複製全文
+        // 一鍵複製全文（調整分段邏輯）
         document.getElementById('copy-all').addEventListener('click', function() {
             let text = '';
+            let isNewParagraph = true; // 假設第一行是新段落
             for (let page = 1; page <= pageCount; page++) {
                 const rows = getRows(page);
                 const cols = getCols();
                 for (let row = 1; row <= rows; row++) {
                     let line = '';
+                    let isEmptyFirstTwo = true;
                     for (let col = 1; col <= cols; col++) {
                         const input = document.querySelector(
                             `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
                         );
-                        line += input.value || '';
+                        const char = input.value || '';
+                        line += char;
+                        if (col <= 2 && char !== '') {
+                            isEmptyFirstTwo = false;
+                        }
                     }
                     // 去除行尾空白字符
                     line = line.trimEnd();
-                    text += line + '\n';
+                    if (line) {
+                        if (isNewParagraph && isEmptyFirstTwo) {
+                            text += '\n'; // 新段落前添加換行符
+                        }
+                        text += line + '\n';
+                        isNewParagraph = isEmptyFirstTwo;
+                    } else {
+                        text += '\n';
+                        isNewParagraph = true; // 空行後視為新段落
+                    }
                 }
                 if (page < pageCount) {
                     text += '\n'; // 頁面之間添加額外換行符
