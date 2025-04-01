@@ -35,13 +35,6 @@
         .action-btn:hover {
             background-color: #45a049;
         }
-        .export-btn {
-            background-color: #2196F3;
-            color: white;
-        }
-        .export-btn:hover {
-            background-color: #1e87db;
-        }
         .page {
             margin: 0 auto 10px;
             padding: 10px;
@@ -96,10 +89,7 @@
             <button id="save" class="action-btn">儲存</button>
             <button id="clear" class="action-btn">清空</button>
             <button id="add-page" class="action-btn">新增頁面</button>
-        </div>
-        <div class="button-group">
-            <button id="export-pdf" class="export-btn">導出PDF</button>
-            <button id="export-txt" class="export-btn">導出文字</button>
+            <button id="copy-all" class="action-btn">一鍵複製全文</button>
         </div>
     </div>
     <div id="manuscript">
@@ -107,9 +97,7 @@
     </div>
     <div id="word-count">字數：0</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
     <script>
-        const { jsPDF } = window.jspdf;
         const manuscript = document.getElementById('manuscript');
         const wordCountDiv = document.getElementById('word-count');
         let pageCount = 0;
@@ -313,52 +301,8 @@
         }
         loadManuscript();
 
-        // 導出PDF
-        document.getElementById('export-pdf').addEventListener('click', function() {
-            const doc = new jsPDF();
-            const cellSize = 10; // pt
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-
-            for (let page = 1; page <= pageCount; page++) {
-                if (page > 1) doc.addPage();
-                const rows = getRows(page);
-                const cols = getCols();
-                const gridWidth = cols * cellSize;
-                const gridHeight = rows * cellSize;
-                const marginX = (pageWidth - gridWidth) / 2;
-                const marginY = 20;
-                // 繪製網格線
-                doc.setLineWidth(0.5);
-                for (let i = 0; i <= rows; i++) {
-                    const y = marginY + i * cellSize;
-                    doc.line(marginX, y, marginX + gridWidth, y);
-                }
-                for (let j = 0; j <= cols; j++) {
-                    const x = marginX + j * cellSize;
-                    doc.line(x, marginY, x, marginY + gridHeight);
-                }
-                // 繪製文字
-                doc.setFontSize(12);
-                for (let row = 1; row <= rows; row++) {
-                    for (let col = 1; col <= cols; col++) {
-                        const input = document.querySelector(
-                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                        );
-                        const text = input.value;
-                        if (text) {
-                            const x = marginX + (col - 1) * cellSize + cellSize / 2;
-                            const y = marginY + (row - 1) * cellSize + cellSize / 2 + 2;
-                            doc.text(text, x, y, { align: 'center' });
-                        }
-                    }
-                }
-            }
-            doc.save('manuscript.pdf');
-        });
-
-        // 導出文字
-        document.getElementById('export-txt').addEventListener('click', function() {
+        // 一鍵複製全文
+        document.getElementById('copy-all').addEventListener('click', function() {
             let text = '';
             for (let page = 1; page <= pageCount; page++) {
                 const rows = getRows(page);
@@ -371,18 +315,19 @@
                         );
                         line += input.value || '';
                     }
-                    if (line.trim()) text += line + '\n';
-                    else text += '\n';
+                    // 去除行尾空白字符
+                    line = line.trimEnd();
+                    text += line + '\n';
                 }
-                if (page < pageCount) text += '\n';
+                if (page < pageCount) {
+                    text += '\n'; // 頁面之間添加額外換行符
+                }
             }
-            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'manuscript.txt';
-            a.click();
-            URL.revokeObjectURL(url);
+            navigator.clipboard.writeText(text).then(() => {
+                alert('全文已複製到剪貼板');
+            }).catch(err => {
+                console.error('複製失敗:', err);
+            });
         });
     </script>
 </body>
