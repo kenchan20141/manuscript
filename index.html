@@ -67,11 +67,9 @@
             padding-bottom: 5%;
             border: 1px solid #ccc;
             position: relative;
+            box-sizing: border-box; /* 確保尺寸計算正確 */
         }
         .grid input {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
             border: none;
@@ -79,6 +77,9 @@
             font-size: 16px;
             outline: none;
             background: transparent;
+            box-sizing: border-box; /* 確保尺寸計算正確 */
+            padding: 0; /* 移除內邊距 */
+            line-height: 1; /* 調整行高以避免溢出 */
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
