@@ -1,18 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文寫作</title>
-    <!-- 引入 Google Fonts 的 Noto Serif TC 字體 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 設定全局字體，包含後備字體以確保手機相容性 */
-        body, input, button {
-            font-family: 'Noto Serif TC', 'Microsoft JhengHei', 'PingFang TC', serif;
-        }
         body {
             background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
             overflow: auto;
@@ -87,10 +83,6 @@
             box-sizing: border-box;
             padding: 0;
             line-height: 1;
-            /* 確保文字在方框內居中顯示，避免溢出 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
@@ -120,13 +112,13 @@
             border-radius: 5px;
             text-align: center;
         }
-        /* 護眼模式按鍵樣式 - 改為顯眼的黃色 */
+        /* 護眼模式按鍵樣式 */
         #eye-protection {
-            background-color: #FFD700; /* 金黃色 */
+            background-color: #fdf5e6; /* 淺米黃色 */
             color: #333;
         }
         #eye-protection:hover {
-            background-color: #FFC700; /* 懸停時稍深的黃色 */
+            background-color: #f0e5d5;
         }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
