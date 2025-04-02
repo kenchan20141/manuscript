@@ -7,7 +7,7 @@
     <style>
         body {
             background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            font-family: 'Noto Serif TC', Arial, sans-serif; /* 改為繁體書法字體 */
             margin: 0;
             padding: 10px;
             overflow: auto;
@@ -82,6 +82,7 @@
             box-sizing: border-box;
             padding: 0;
             line-height: 1;
+            font-family: 'Noto Serif TC', Arial, sans-serif; /* 輸入框使用相同字體 */
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
@@ -113,16 +114,16 @@
         }
         /* 護眼模式按鍵樣式 */
         #eye-protection {
-            background-color: #fdf5e6; /* 淺米黃色 */
-            color: #333;
+            background-color: #FFD700; /* 改為顯眼的金黃色 */
+            color: #333; /* 確保文字可讀性 */
         }
         #eye-protection:hover {
-            background-color: #f0e5d5;
+            background-color: #FFC700; /* 懸停時略微變暗 */
         }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div id="controls">
