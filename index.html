@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -50,9 +52,6 @@
             border-radius: 5px;
             width: 100%;
             max-width: 600px;
-        }
-        .page.eyecare {
-            background-color: #fdf5e6; /* 淺米黃色 */
         }
         .title {
             text-align: center;
@@ -123,8 +122,8 @@
             <button id="clear" class="action-btn">清空</button>
             <button id="add-page" class="action-btn">新增頁面</button>
             <button id="copy-all" class="copy-btn">一鍵複製全文</button>
+            <!-- 新增紅色的導出PDF按鍵 -->
             <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
-            <button id="eyecare-mode" class="action-btn">護眼模式</button>
         </div>
     </div>
     <div id="manuscript">
@@ -146,7 +145,6 @@
         const progressBar = document.getElementById('progress-bar');
         let pageCount = 0;
         let totalWords = 0;
-        let isEyecareMode = false;
 
         // 獲取頁面行數
         function getRows(page) {
@@ -183,9 +181,6 @@
             const cols = getCols();
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
-            if (isEyecareMode) {
-                pageDiv.classList.add('eyecare');
-            }
             pageDiv.dataset.page = pageCount;
             const title = document.createElement('div');
             title.className = 'title';
@@ -420,6 +415,7 @@
 
         // 導出 PDF 功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
+            // 顯示進度視窗
             progressOverlay.style.display = 'flex';
             progressBar.value = 0;
 
@@ -438,39 +434,27 @@
             for (let i = 0; i < totalPages; i++) {
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
-                    scale: 1,
+                    scale: 1,  // 降低解析度以減少檔案大小，同時保持清晰度
                     useCORS: true,
-                    backgroundColor: null,  // 避免背景渲染問題
                     width: page.offsetWidth,
                     height: page.offsetHeight
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.8);  // 品質設為 0.8
+                const imgData = canvas.toDataURL('image/jpeg', 0.7);  // 使用 JPEG 格式並設置品質為 0.7
                 const imgWidth = pdf.internal.pageSize.getWidth();
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
                 if (i > 0) {
                     pdf.addPage();
                 }
-                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, '', 'FAST');  // 使用 FAST 壓縮
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
+                // 更新進度條
                 progressBar.value = ((i + 1) / totalPages) * 100;
             }
 
             pdf.save('manuscript.pdf');
+            // 隱藏進度視窗
             progressOverlay.style.display = 'none';
-        });
-
-        // 護眼模式切換
-        document.getElementById('eyecare-mode').addEventListener('click', function() {
-            isEyecareMode = !isEyecareMode;
-            const pages = document.querySelectorAll('.page');
-            pages.forEach(page => {
-                if (isEyecareMode) {
-                    page.classList.add('eyecare');
-                } else {
-                    page.classList.remove('eyecare');
-                }
-            });
         });
     </script>
 </body>
