@@ -104,275 +104,275 @@
     </div>
     <div id="word-count">字數：0</div>
 
-   <script>
-    const manuscript = document.getElementById('manuscript');
-    const wordCountDiv = document.getElementById('word-count');
-    let pageCount = 0;
-    let totalWords = 0;
+    <script>
+        const manuscript = document.getElementById('manuscript');
+        const wordCountDiv = document.getElementById('word-count');
+        let pageCount = 0;
+        let totalWords = 0;
 
-    // 獲取頁面行數
-    function getRows(page) {
-        return page % 2 === 1 ? 15 : 20;
-    }
-
-    // 獲取頁面列數
-    function getCols() {
-        return 20;
-    }
-
-    // 更新字數統計
-    function updateWordCount() {
-        totalWords = 0;
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            for (let row = 1; row <= rows; row++) {
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    if (input && input.value) totalWords++;
-                }
-            }
+        // 獲取頁面行數
+        function getRows(page) {
+            return page % 2 === 1 ? 15 : 20;
         }
-        wordCountDiv.textContent = `字數：${totalWords}`;
-    }
 
-    // 添加新頁面
-    function addPage() {
-        pageCount++;
-        const rows = getRows(pageCount);
-        const cols = getCols();
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        pageDiv.dataset.page = pageCount;
-        const title = document.createElement('div');
-        title.className = 'title';
-        title.textContent = '中文寫作';
-        pageDiv.appendChild(title);
-        const table = document.createElement('table');
-        table.className = 'grid';
-        for (let row = 1; row <= rows; row++) {
-            const tr = document.createElement('tr');
-            for (let col = 1; col <= cols; col++) {
-                const td = document.createElement('td');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.maxLength = 1;
-                input.dataset.page = pageCount;
-                input.dataset.row = row;
-                input.dataset.col = col;
-                // 支援中文輸入法與多字元輸入
-                input.addEventListener('compositionstart', function() {
-                    this.isComposing = true;
-                });
-                input.addEventListener('compositionend', function() {
-                    this.isComposing = false;
-                    handleInput(this);
-                });
-                input.addEventListener('input', function() {
-                    if (!this.isComposing) {
-                        handleInput(this);
-                    }
-                });
-                // 刪除鍵功能
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Backspace' && this.value === '') {
-                        moveToPrevInput(this);
-                        updateWordCount();
-                    }
-                });
-                td.appendChild(input);
-                tr.appendChild(td);
-            }
-            table.appendChild(tr);
+        // 獲取頁面列數
+        function getCols() {
+            return 20;
         }
-        pageDiv.appendChild(table);
-        manuscript.appendChild(pageDiv);
-        updateWordCount();
-    }
 
-    // 處理輸入（支援多字元）
-    function handleInput(currentInput) {
-        const value = currentInput.value;
-        if (value.length > 0) {
-            const chars = value.split('');
-            let input = currentInput;
-            for (let char of chars) {
-                input.value = char;
-                updateWordCount();
-                let nextInput = getNextInput(input);
-                if (!nextInput) {
-                    addPage();
-                    nextInput = getNextInput(input);
-                }
-                input = nextInput;
-            }
-            if (input) {
-                input.focus();
-            }
-        } else {
-            updateWordCount();
-        }
-    }
-
-    // 獲取下一個輸入框
-    function getNextInput(currentInput) {
-        let currentPage = parseInt(currentInput.dataset.page);
-        let currentRow = parseInt(currentInput.dataset.row);
-        let currentCol = parseInt(currentInput.dataset.col);
-        let nextCol = currentCol + 1;
-        let nextRow = currentRow;
-        let nextPage = currentPage;
-        const cols = getCols();
-        const rows = getRows(currentPage);
-        if (nextCol > cols) {
-            nextCol = 1;
-            nextRow = currentRow + 1;
-            if (nextRow > rows) {
-                nextRow = 1;
-                nextPage = currentPage + 1;
-                if (nextPage > pageCount) {
-                    addPage();
-                }
-            }
-        }
-        return document.querySelector(
-            `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
-        );
-    }
-
-    // 移動到上一個輸入框並刪除內容
-    function moveToPrevInput(currentInput) {
-        let currentPage = parseInt(currentInput.dataset.page);
-        let currentRow = parseInt(currentInput.dataset.row);
-        let currentCol = parseInt(currentInput.dataset.col);
-        let prevCol = currentCol - 1;
-        let prevRow = currentRow;
-        let prevPage = currentPage;
-        const cols = getCols();
-        if (prevCol < 1) {
-            prevCol = cols;
-            prevRow = currentRow - 1;
-            if (prevRow < 1) {
-                prevRow = getRows(currentPage - 1);
-                prevPage = currentPage - 1;
-                if (prevPage < 1) return;
-            }
-        }
-        const prevInput = document.querySelector(
-            `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
-        );
-        if (prevInput) {
-            prevInput.value = '';
-            prevInput.focus();
-        }
-    }
-
-    // 初始化第一頁
-    addPage();
-
-    // 新增頁面按鈕
-    document.getElementById('add-page').addEventListener('click', addPage);
-
-    // 儲存功能
-    document.getElementById('save').addEventListener('click', function() {
-        const data = [];
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            const pageData = [];
-            for (let row = 1; row <= rows; row++) {
-                const rowData = [];
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    rowData.push(input.value);
-                }
-                pageData.push(rowData);
-            }
-            data.push(pageData);
-        }
-        localStorage.setItem('manuscript', JSON.stringify(data));
-        alert('文章已儲存');
-    });
-
-    // 清空功能
-    document.getElementById('clear').addEventListener('click', function() {
-        if (confirm('確定要清空所有文字嗎？')) {
-            manuscript.innerHTML = '';
-            pageCount = 0;
-            addPage();
-            localStorage.removeItem('manuscript');
-            updateWordCount();
-        }
-    });
-
-    // 載入儲存的文章
-    function loadManuscript() {
-        const data = JSON.parse(localStorage.getItem('manuscript'));
-        if (data) {
-            data.forEach((pageData, pageIndex) => {
-                if (pageIndex > 0) addPage();
-                const rows = getRows(pageIndex + 1);
+        // 更新字數統計
+        function updateWordCount() {
+            totalWords = 0;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
                 const cols = getCols();
                 for (let row = 1; row <= rows; row++) {
                     for (let col = 1; col <= cols; col++) {
                         const input = document.querySelector(
-                            `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
                         );
-                        input.value = pageData[row - 1][col - 1];
+                        if (input && input.value) totalWords++;
                     }
                 }
-            });
+            }
+            wordCountDiv.textContent = `字數：${totalWords}`;
+        }
+
+        // 添加新頁面
+        function addPage() {
+            pageCount++;
+            const rows = getRows(pageCount);
+            const cols = getCols();
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            pageDiv.dataset.page = pageCount;
+            const title = document.createElement('div');
+            title.className = 'title';
+            title.textContent = '中文寫作';
+            pageDiv.appendChild(title);
+            const table = document.createElement('table');
+            table.className = 'grid';
+            for (let row = 1; row <= rows; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 1; col <= cols; col++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    input.dataset.page = pageCount;
+                    input.dataset.row = row;
+                    input.dataset.col = col;
+                    // 支援中文輸入法與多字元輸入
+                    input.addEventListener('compositionstart', function() {
+                        this.isComposing = true;
+                    });
+                    input.addEventListener('compositionend', function() {
+                        this.isComposing = false;
+                        handleInput(this);
+                    });
+                    input.addEventListener('input', function() {
+                        if (!this.isComposing) {
+                            handleInput(this);
+                        }
+                    });
+                    // 刪除鍵功能
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value === '') {
+                            moveToPrevInput(this);
+                            updateWordCount();
+                        }
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            pageDiv.appendChild(table);
+            manuscript.appendChild(pageDiv);
             updateWordCount();
         }
-    }
-    loadManuscript();
 
-    // 一鍵複製全文
-    document.getElementById('copy-all').addEventListener('click', function() {
-        let text = '';
-        let isNewParagraph = true;
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            for (let row = 1; row <= rows; row++) {
-                let line = '';
-                let isEmptyFirstTwo = true;
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    const char = input.value || '';
-                    line += char;
-                    if (col <= 2 && char !== '') {
-                        isEmptyFirstTwo = false;
+        // 處理輸入（支援多字元）
+        function handleInput(currentInput) {
+            const value = currentInput.value;
+            if (value.length > 0) {
+                const chars = value.split('');
+                let input = currentInput;
+                for (let char of chars) {
+                    input.value = char;
+                    updateWordCount();
+                    let nextInput = getNextInput(input);
+                    if (!nextInput) {
+                        addPage();
+                        nextInput = getNextInput(input);
                     }
+                    input = nextInput;
                 }
-                line = line.trimEnd();
-                if (line) {
-                    if (isNewParagraph && isEmptyFirstTwo) {
-                        text += '\n';
-                    }
-                    text += line + '\n';
-                    isNewParagraph = isEmptyFirstTwo;
-                } else {
-                    text += '\n';
-                    isNewParagraph = true;
+                if (input) {
+                    input.focus();
                 }
-            }
-            if (page < pageCount) {
-                text += '\n';
+            } else {
+                updateWordCount();
             }
         }
-        navigator.clipboard.writeText(text).then(() => {
-            alert('全文已複製到剪貼板');
-        }).catch(err => {
-            console.error('複製失敗:', err);
+
+        // 獲取下一個輸入框
+        function getNextInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let nextCol = currentCol + 1;
+            let nextRow = currentRow;
+            let nextPage = currentPage;
+            const cols = getCols();
+            const rows = getRows(currentPage);
+            if (nextCol > cols) {
+                nextCol = 1;
+                nextRow = currentRow + 1;
+                if (nextRow > rows) {
+                    nextRow = 1;
+                    nextPage = currentPage + 1;
+                    if (nextPage > pageCount) {
+                        addPage();
+                    }
+                }
+            }
+            return document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+            );
+        }
+
+        // 移動到上一個輸入框並刪除內容
+        function moveToPrevInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let prevCol = currentCol - 1;
+            let prevRow = currentRow;
+            let prevPage = currentPage;
+            const cols = getCols();
+            if (prevCol < 1) {
+                prevCol = cols;
+                prevRow = currentRow - 1;
+                if (prevRow < 1) {
+                    prevRow = getRows(currentPage - 1);
+                    prevPage = currentPage - 1;
+                    if (prevPage < 1) return;
+                }
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
+            );
+            if (prevInput) {
+                prevInput.value = '';
+                prevInput.focus();
+            }
+        }
+
+        // 初始化第一頁
+        addPage();
+
+        // 新增頁面按鈕
+        document.getElementById('add-page').addEventListener('click', addPage);
+
+        // 儲存功能
+        document.getElementById('save').addEventListener('click', function() {
+            const data = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                const pageData = [];
+                for (let row = 1; row <= rows; row++) {
+                    const rowData = [];
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        rowData.push(input.value);
+                    }
+                    pageData.push(rowData);
+                }
+                data.push(pageData);
+            }
+            localStorage.setItem('manuscript', JSON.stringify(data));
+            alert('文章已儲存');
         });
-    });
-</script>
+
+        // 清空功能
+        document.getElementById('clear').addEventListener('click', function() {
+            if (confirm('確定要清空所有文字嗎？')) {
+                manuscript.innerHTML = '';
+                pageCount = 0;
+                addPage();
+                localStorage.removeItem('manuscript');
+                updateWordCount();
+            }
+        });
+
+        // 載入儲存的文章
+        function loadManuscript() {
+            const data = JSON.parse(localStorage.getItem('manuscript'));
+            if (data) {
+                data.forEach((pageData, pageIndex) => {
+                    if (pageIndex > 0) addPage();
+                    const rows = getRows(pageIndex + 1);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            const input = document.querySelector(
+                                `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            );
+                            input.value = pageData[row - 1][col - 1];
+                        }
+                    }
+                });
+                updateWordCount();
+            }
+        }
+        loadManuscript();
+
+        // 一鍵複製全文
+        document.getElementById('copy-all').addEventListener('click', function() {
+            let text = '';
+            let isNewParagraph = true;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    let line = '';
+                    let isEmptyFirstTwo = true;
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        const char = input.value || '';
+                        line += char;
+                        if (col <= 2 && char !== '') {
+                            isEmptyFirstTwo = false;
+                        }
+                    }
+                    line = line.trimEnd();
+                    if (line) {
+                        if (isNewParagraph && isEmptyFirstTwo) {
+                            text += '\n';
+                        }
+                        text += line + '\n';
+                        isNewParagraph = isEmptyFirstTwo;
+                    } else {
+                        text += '\n';
+                        isNewParagraph = true;
+                    }
+                }
+                if (page < pageCount) {
+                    text += '\n';
+                }
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert('全文已複製到剪貼板');
+            }).catch(err => {
+                console.error('複製失敗:', err);
+            });
+        });
+    </script>
 </body>
 </html>
