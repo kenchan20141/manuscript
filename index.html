@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -58,7 +60,6 @@
             text-align: center;
             font-size: 18px;
             margin-bottom: 10px;
-            font-family: '標楷體', 'KaiTi', 'SimKai', 'DFKai-SB', serif;
         }
         .grid {
             border-collapse: separate;
@@ -67,6 +68,7 @@
         }
         .grid td {
             width: 5%;
+            aspect-ratio: 1 / 1;
             border: 1px solid #ccc;
             position: relative;
             box-sizing: border-box;
@@ -82,7 +84,6 @@
             box-sizing: border-box;
             padding: 0;
             line-height: 1;
-            font-family: '標楷體', 'KaiTi', 'SimKai', 'DFKai-SB', serif;
         }
         .grid input:focus {
             border: 1px solid #4CAF50;
@@ -114,11 +115,11 @@
         }
         /* 護眼模式按鍵樣式 */
         #eye-protection {
-            background-color: #FFD700; /* 金色 */
+            background-color: #fdf5e6; /* 淺米黃色 */
             color: #333;
         }
         #eye-protection:hover {
-            background-color: #FFC700;
+            background-color: #f0e5d5;
         }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
@@ -185,15 +186,6 @@
             wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
-        // 設置方格高度以強制正方形
-        function setGridHeight() {
-            const tds = document.querySelectorAll('.grid td');
-            tds.forEach(td => {
-                const width = td.offsetWidth;
-                td.style.height = `${width}px`;
-            });
-        }
-
         // 添加新頁面
         function addPage() {
             pageCount++;
@@ -252,7 +244,6 @@
             pageDiv.appendChild(table);
             manuscript.appendChild(pageDiv);
             updateWordCount();
-            setGridHeight(); // 添加頁面後設置方格高度
         }
 
         // 處理輸入（支援多字元）
@@ -390,7 +381,6 @@
                     }
                 });
                 updateWordCount();
-                setGridHeight(); // 載入後設置方格高度
             }
         }
         loadManuscript();
@@ -520,10 +510,6 @@
             // 隱藏進度視窗
             progressOverlay.style.display = 'none';
         });
-
-        // 在頁面加載和窗口大小改變時設置方格高度
-        window.addEventListener('load', setGridHeight);
-        window.addEventListener('resize', setGridHeight);
     </script>
 </body>
 </html>
