@@ -88,26 +88,6 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        #pdf-progress-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-        #pdf-progress-modal > div {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
-        }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -128,11 +108,6 @@
         <!-- 頁面將動態添加 -->
     </div>
     <div id="word-count">字數：0</div>
-    <div id="pdf-progress-modal">
-        <div>
-            <p>正在導出PDF，請稍候...</p>
-        </div>
-    </div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -283,7 +258,7 @@
             let prevCol = currentCol - 1;
             let prevRow = currentRow;
             let prevPage = currentPage;
-clusters            const cols = getCols();
+            const cols = getCols();
             if (prevCol < 1) {
                 prevCol = cols;
                 prevRow = currentRow - 1;
@@ -409,9 +384,6 @@ clusters            const cols = getCols();
 
         // 導出PDF功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
-            // 顯示模態視窗
-            document.getElementById('pdf-progress-modal').style.display = 'block';
-
             const pages = document.querySelectorAll('.page');
             const firstPage = pages[0];
             const pageWidth = firstPage.offsetWidth;
@@ -419,30 +391,25 @@ clusters            const cols = getCols();
             const pdf = new jspdf.jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
-                format: [pageWidth, pageHeight],
-                compress: true  // 啟用壓縮
+                format: [pageWidth, pageHeight]
             });
 
             for (let i = 0; i < pages.length; i++) {
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
-                    scale: 1,  // 降低解析度以減少檔案大小
-                    useCORS: true,
-                    logging: false  // 減少日誌輸出
+                    scale: 2,  // 提高圖片解析度
+                    useCORS: true
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.75);  // 使用JPEG格式並設置品質為0.75
+                const imgData = canvas.toDataURL('image/png');
                 const imgWidth = pdf.internal.pageSize.getWidth();
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 if (i > 0) {
                     pdf.addPage();
                 }
-                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
             }
 
             pdf.save('manuscript.pdf');
-
-            // 隱藏模態視窗
-            document.getElementById('pdf-progress-modal').style.display = 'none';
         });
     </script>
 </body>
