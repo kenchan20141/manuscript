@@ -88,6 +88,26 @@
             font-size: 14px;
             margin-top: 10px;
         }
+        /* 進度視窗樣式 */
+        #progress-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        #progress-box {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -108,10 +128,19 @@
         <!-- 頁面將動態添加 -->
     </div>
     <div id="word-count">字數：0</div>
+    <!-- 進度視窗 -->
+    <div id="progress-overlay">
+        <div id="progress-box">
+            <p>正在導出 PDF...</p>
+            <progress id="progress-bar" value="0" max="100"></progress>
+        </div>
+    </div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
         const wordCountDiv = document.getElementById('word-count');
+        const progressOverlay = document.getElementById('progress-overlay');
+        const progressBar = document.getElementById('progress-bar');
         let pageCount = 0;
         let totalWords = 0;
 
@@ -382,34 +411,48 @@
             });
         });
 
-        // 導出PDF功能
+        // 導出 PDF 功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
+            // 顯示進度視窗
+            progressOverlay.style.display = 'flex';
+            progressBar.value = 0;
+
             const pages = document.querySelectorAll('.page');
+            const totalPages = pages.length;
             const firstPage = pages[0];
             const pageWidth = firstPage.offsetWidth;
             const pageHeight = firstPage.offsetHeight;
+
             const pdf = new jspdf.jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
                 format: [pageWidth, pageHeight]
             });
 
-            for (let i = 0; i < pages.length; i++) {
+            for (let i = 0; i < totalPages; i++) {
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
-                    scale: 2,  // 提高圖片解析度
-                    useCORS: true
+                    scale: 1,  // 降低解析度以減少檔案大小，同時保持清晰度
+                    useCORS: true,
+                    width: page.offsetWidth,
+                    height: page.offsetHeight
                 });
-                const imgData = canvas.toDataURL('image/png');
+                const imgData = canvas.toDataURL('image/jpeg', 0.7);  // 使用 JPEG 格式並設置品質為 0.7
                 const imgWidth = pdf.internal.pageSize.getWidth();
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
                 if (i > 0) {
                     pdf.addPage();
                 }
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+                // 更新進度條
+                progressBar.value = ((i + 1) / totalPages) * 100;
             }
 
             pdf.save('manuscript.pdf');
+            // 隱藏進度視窗
+            progressOverlay.style.display = 'none';
         });
     </script>
 </body>
