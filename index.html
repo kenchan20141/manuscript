@@ -138,6 +138,28 @@
             wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
+        // 分發文字到後續輸入框
+        function distributeText(startInput, text) {
+            const chars = text.split('');
+            let input = startInput;
+            for (let char of chars) {
+                if (char === '\n' || char === '\r') {
+                    continue; // 跳過換行符
+                }
+                input.value = char;
+                updateWordCount();
+                let nextInput = getNextInput(input);
+                if (!nextInput) {
+                    addPage();
+                    nextInput = getNextInput(input);
+                }
+                input = nextInput;
+            }
+            if (input) {
+                input.focus();
+            }
+        }
+
         // 添加新頁面
         function addPage() {
             pageCount++;
@@ -158,11 +180,11 @@
                     const td = document.createElement('td');
                     const input = document.createElement('input');
                     input.type = 'text';
-                    input.maxLength = 1;
+                    // 移除 maxLength="1" 以支援多字元輸入
                     input.dataset.page = pageCount;
                     input.dataset.row = row;
                     input.dataset.col = col;
-                    // 支援中文輸入法與多字元輸入
+                    // 支援中文輸入法
                     input.addEventListener('compositionstart', function() {
                         this.isComposing = true;
                     });
@@ -181,6 +203,12 @@
                             moveToPrevInput(this);
                             updateWordCount();
                         }
+                    });
+                    // 處理貼上事件
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        distributeText(this, pastedText);
                     });
                     td.appendChild(input);
                     tr.appendChild(td);
@@ -260,7 +288,7 @@
                     if (prevPage < 1) return;
                 }
             }
-            const prevInput = document.querySelector(
+            const prev-const prevInput = document.querySelector(
                 `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
             );
             if (prevInput) {
