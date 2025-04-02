@@ -89,6 +89,9 @@
             margin-top: 10px;
         }
     </style>
+    <!-- 引入 html2canvas 和 jsPDF 庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div id="controls">
@@ -97,6 +100,8 @@
             <button id="clear" class="action-btn">清空</button>
             <button id="add-page" class="action-btn">新增頁面</button>
             <button id="copy-all" class="copy-btn">一鍵複製全文</button>
+            <!-- 新增紅色的導出PDF按鍵 -->
+            <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
         </div>
     </div>
     <div id="manuscript">
@@ -158,11 +163,9 @@
                     const td = document.createElement('td');
                     const input = document.createElement('input');
                     input.type = 'text';
-                    // 移除 maxLength = 1 以支援拼音多字輸入和貼上
                     input.dataset.page = pageCount;
                     input.dataset.row = row;
                     input.dataset.col = col;
-                    // 支援中文輸入法與多字元輸入
                     input.addEventListener('compositionstart', function() {
                         this.isComposing = true;
                     });
@@ -175,14 +178,12 @@
                             handleInput(this);
                         }
                     });
-                    // 刪除鍵功能
                     input.addEventListener('keydown', function(e) {
                         if (e.key === 'Backspace' && this.value === '') {
                             moveToPrevInput(this);
                             updateWordCount();
                         }
                     });
-                    // 添加 paste 事件處理以支援貼上文字
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
@@ -379,6 +380,36 @@
             }).catch(err => {
                 console.error('複製失敗:', err);
             });
+        });
+
+        // 導出PDF功能
+        document.getElementById('export-pdf').addEventListener('click', async function() {
+            const pages = document.querySelectorAll('.page');
+            const firstPage = pages[0];
+            const pageWidth = firstPage.offsetWidth;
+            const pageHeight = firstPage.offsetHeight;
+            const pdf = new jspdf.jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [pageWidth, pageHeight]
+            });
+
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                const canvas = await html2canvas(page, {
+                    scale: 2,  // 提高圖片解析度
+                    useCORS: true
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = pdf.internal.pageSize.getWidth();
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                if (i > 0) {
+                    pdf.addPage();
+                }
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            }
+
+            pdf.save('manuscript.pdf');
         });
     </script>
 </body>
