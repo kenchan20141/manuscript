@@ -66,8 +66,6 @@
             width: 100%;
         }
         .grid td {
-            width: 5%;
-            aspect-ratio: 1 / 1;
             border: 1px solid #ccc;
             position: relative;
             box-sizing: border-box;
@@ -77,12 +75,10 @@
             height: 100%;
             border: none;
             text-align: center;
-            font-size: 16px;
             outline: none;
             background: transparent;
             box-sizing: border-box;
             padding: 0;
-            line-height: 1;
             font-family: '標楷體', 'KaiTi', 'SimKai', 'DFKai-SB', serif;
         }
         .grid input:focus {
@@ -93,7 +89,6 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        /* 進度視窗樣式 */
         #progress-overlay {
             position: fixed;
             top: 0;
@@ -113,16 +108,14 @@
             border-radius: 5px;
             text-align: center;
         }
-        /* 護眼模式按鍵樣式 */
         #eye-protection {
-            background-color: #FFD700; /* 金色 */
+            background-color: #FFD700;
             color: #333;
         }
         #eye-protection:hover {
             background-color: #FFC700;
         }
     </style>
-    <!-- 引入 html2canvas 和 jsPDF 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -141,7 +134,6 @@
         <!-- 頁面將動態添加 -->
     </div>
     <div id="word-count">字數：0</div>
-    <!-- 進度視窗 -->
     <div id="progress-overlay">
         <div id="progress-box">
             <p>正在導出 PDF...</p>
@@ -158,17 +150,14 @@
         let totalWords = 0;
         let isEyeProtection = false;
 
-        // 獲取頁面行數
         function getRows(page) {
             return page % 2 === 1 ? 15 : 20;
         }
 
-        // 獲取頁面列數
         function getCols() {
             return 20;
         }
 
-        // 更新字數統計
         function updateWordCount() {
             totalWords = 0;
             for (let page = 1; page <= pageCount; page++) {
@@ -186,7 +175,21 @@
             wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
-        // 添加新頁面
+        function setCellSizes(pageDiv) {
+            const pageWidth = pageDiv.offsetWidth;
+            const cols = getCols();
+            const cellWidth = pageWidth / cols;
+            const cells = pageDiv.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.width = `${cellWidth}px`;
+                cell.style.height = `${cellWidth}px`;
+                const input = cell.querySelector('input');
+                const fontSize = Math.max(cellWidth * 0.8, 12);
+                input.style.fontSize = `${fontSize}px`;
+                input.style.lineHeight = `${cellWidth}px`;
+            });
+        }
+
         function addPage() {
             pageCount++;
             const rows = getRows(pageCount);
@@ -244,9 +247,9 @@
             pageDiv.appendChild(table);
             manuscript.appendChild(pageDiv);
             updateWordCount();
+            setCellSizes(pageDiv);
         }
 
-        // 處理輸入（支援多字元）
         function handleInput(currentInput) {
             const value = currentInput.value;
             if (value.length > 0) {
@@ -270,7 +273,6 @@
             }
         }
 
-        // 獲取下一個輸入框
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
             let currentRow = parseInt(currentInput.dataset.row);
@@ -296,7 +298,6 @@
             );
         }
 
-        // 移動到上一個輸入框並刪除內容
         function moveToPrevInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
             let currentRow = parseInt(currentInput.dataset.row);
@@ -323,13 +324,10 @@
             }
         }
 
-        // 初始化第一頁
         addPage();
 
-        // 新增頁面按鈕
         document.getElementById('add-page').addEventListener('click', addPage);
 
-        // 儲存功能
         document.getElementById('save').addEventListener('click', function() {
             const data = [];
             for (let page = 1; page <= pageCount; page++) {
@@ -352,7 +350,6 @@
             alert('文章已儲存');
         });
 
-        // 清空功能
         document.getElementById('clear').addEventListener('click', function() {
             if (confirm('確定要清空所有文字嗎？')) {
                 manuscript.innerHTML = '';
@@ -363,7 +360,6 @@
             }
         });
 
-        // 載入儲存的文章
         function loadManuscript() {
             const data = JSON.parse(localStorage.getItem('manuscript'));
             if (data) {
@@ -385,7 +381,6 @@
         }
         loadManuscript();
 
-        // 一鍵複製全文
         document.getElementById('copy-all').addEventListener('click', function() {
             let text = '';
             let isNewParagraph = true;
@@ -428,7 +423,6 @@
             });
         });
 
-        // 護眼模式
         const eyeProtectionBtn = document.getElementById('eye-protection');
         eyeProtectionBtn.addEventListener('click', function() {
             isEyeProtection = !isEyeProtection;
@@ -443,7 +437,6 @@
             localStorage.setItem('eyeProtection', isEyeProtection);
         });
 
-        // 載入護眼模式設置
         if (localStorage.getItem('eyeProtection') === 'true') {
             isEyeProtection = true;
             const pages = document.querySelectorAll('.page');
@@ -452,16 +445,13 @@
             });
         }
 
-        // 導出 PDF 功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
-            // 顯示進度視窗
             progressOverlay.style.display = 'flex';
             progressBar.value = 0;
 
             const pages = document.querySelectorAll('.page');
             const totalPages = pages.length;
 
-            // 暫時移除box-shadow以避免灰色色塊
             const originalBoxShadows = [];
             pages.forEach(page => {
                 originalBoxShadows.push(page.style.boxShadow);
@@ -471,44 +461,46 @@
             const pdf = new jspdf.jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
-                format: 'a4' // 設置為 A4 大小
+                format: 'a4'
             });
 
             for (let i = 0; i < totalPages; i++) {
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
-                    scale: 2, // 提高解析度
+                    scale: 2,
                     useCORS: true,
                     width: page.offsetWidth,
                     height: page.offsetHeight
                 });
-                const imgData = canvas.toDataURL('image/png'); // 使用PNG避免色塊
+                const imgData = canvas.toDataURL('image/png');
 
-                // 計算 PDF 頁面尺寸
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = pdf.internal.pageSize.getHeight();
                 const imgWidth = pdfWidth;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                // 根據頁面高度調整 PDF 頁面
                 if (i > 0) {
                     pdf.addPage([pdfWidth, imgHeight * (pdfHeight / imgHeight)]);
                 }
 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
-                // 更新進度條
                 progressBar.value = ((i + 1) / totalPages) * 100;
             }
 
-            // 恢復box-shadow
             pages.forEach((page, index) => {
                 page.style.boxShadow = originalBoxShadows[index];
             });
 
             pdf.save('manuscript.pdf');
-            // 隱藏進度視窗
             progressOverlay.style.display = 'none';
+        });
+
+        window.addEventListener('resize', function() {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                setCellSizes(page);
+            });
         });
     </script>
 </body>
