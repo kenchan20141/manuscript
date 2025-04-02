@@ -1,4 +1,110 @@
-<script>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文寫作</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            overflow: auto;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .button-group {
+            margin-bottom: 10px;
+        }
+        .button-group button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        .action-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .action-btn:hover {
+            background-color: #45a049;
+        }
+        .copy-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .copy-btn:hover {
+            background-color: #1e87db;
+        }
+        .page {
+            margin: 0 auto 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .grid {
+            border-collapse: separate;
+            border-spacing: 0 2px;
+            width: 100%;
+        }
+        .grid td {
+            width: 5%;
+            aspect-ratio: 1 / 1;
+            border: 1px solid #ccc;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .grid input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+            background: transparent;
+            box-sizing: border-box;
+            padding: 0;
+            line-height: 1;
+        }
+        .grid input:focus {
+            border: 1px solid #4CAF50;
+        }
+        #word-count {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="button-group">
+            <button id="save" class="action-btn">儲存</button>
+            <button id="clear" class="action-btn">清空</button>
+            <button id="add-page" class="action-btn">新增頁面</button>
+            <button id="copy-all" class="copy-btn">一鍵複製全文</button>
+        </div>
+    </div>
+    <div id="manuscript">
+        <!-- 頁面將動態添加 -->
+    </div>
+    <div id="word-count">字數：0</div>
+
+   <script>
     const manuscript = document.getElementById('manuscript');
     const wordCountDiv = document.getElementById('word-count');
     let pageCount = 0;
@@ -268,3 +374,5 @@
         });
     });
 </script>
+</body>
+</html>
