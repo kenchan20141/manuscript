@@ -88,6 +88,13 @@
             font-size: 14px;
             margin-top: 10px;
         }
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
     </style>
     <!-- 引入 html2canvas 和 jsPDF 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -108,6 +115,7 @@
         <!-- 頁面將動態添加 -->
     </div>
     <div id="word-count">字數：0</div>
+    <div id="loading">正在導出 PDF，請稍候...</div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -384,6 +392,9 @@
 
         // 導出PDF功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
+            const loadingDiv = document.getElementById('loading');
+            loadingDiv.style.display = 'block';
+
             const pages = document.querySelectorAll('.page');
             const firstPage = pages[0];
             const pageWidth = firstPage.offsetWidth;
@@ -398,7 +409,9 @@
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
                     scale: 2,  // 提高圖片解析度
-                    useCORS: true
+                    useCORS: true,
+                    width: page.scrollWidth,  // 確保捕捉完整寬度
+                    height: page.scrollHeight  // 確保捕捉完整高度
                 });
                 const imgData = canvas.toDataURL('image/png');
                 const imgWidth = pdf.internal.pageSize.getWidth();
@@ -410,6 +423,7 @@
             }
 
             pdf.save('manuscript.pdf');
+            loadingDiv.style.display = 'none';
         });
     </script>
 </body>
