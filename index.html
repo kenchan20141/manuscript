@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -52,6 +50,9 @@
             border-radius: 5px;
             width: 100%;
             max-width: 600px;
+        }
+        .page.eye-protection {
+            background-color: #fdf5e6; /* 淺米黃色 */
         }
         .title {
             text-align: center;
@@ -122,8 +123,8 @@
             <button id="clear" class="action-btn">清空</button>
             <button id="add-page" class="action-btn">新增頁面</button>
             <button id="copy-all" class="copy-btn">一鍵複製全文</button>
-            <!-- 新增紅色的導出PDF按鍵 -->
             <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
+            <button id="eye-protection" class="action-btn">護眼模式</button>
         </div>
     </div>
     <div id="manuscript">
@@ -145,6 +146,7 @@
         const progressBar = document.getElementById('progress-bar');
         let pageCount = 0;
         let totalWords = 0;
+        let isEyeProtection = false;
 
         // 獲取頁面行數
         function getRows(page) {
@@ -181,6 +183,9 @@
             const cols = getCols();
             const pageDiv = document.createElement('div');
             pageDiv.className = 'page';
+            if (isEyeProtection) {
+                pageDiv.classList.add('eye-protection');
+            }
             pageDiv.dataset.page = pageCount;
             const title = document.createElement('div');
             title.className = 'title';
@@ -413,6 +418,30 @@
             });
         });
 
+        // 護眼模式
+        const eyeProtectionBtn = document.getElementById('eye-protection');
+        eyeProtectionBtn.addEventListener('click', function() {
+            isEyeProtection = !isEyeProtection;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                if (isEyeProtection) {
+                    page.classList.add('eye-protection');
+                } else {
+                    page.classList.remove('eye-protection');
+                }
+            });
+            localStorage.setItem('eyeProtection', isEyeProtection);
+        });
+
+        // 載入護眼模式設置
+        if (localStorage.getItem('eyeProtection') === 'true') {
+            isEyeProtection = true;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.add('eye-protection');
+            });
+        }
+
         // 導出 PDF 功能
         document.getElementById('export-pdf').addEventListener('click', async function() {
             // 顯示進度視窗
@@ -428,29 +457,41 @@
             const pdf = new jspdf.jsPDF({
                 orientation: 'portrait',
                 unit: 'px',
-                format: [pageWidth, pageHeight]
+                format: [pageWidth * 2, pageHeight * 2] // 提高解析度
+            });
+
+            // 暫時移除box-shadow以避免灰色色塊
+            const originalBoxShadows = [];
+            pages.forEach(page => {
+                originalBoxShadows.push(page.style.boxShadow);
+                page.style.boxShadow = 'none';
             });
 
             for (let i = 0; i < totalPages; i++) {
                 const page = pages[i];
                 const canvas = await html2canvas(page, {
-                    scale: 1,  // 降低解析度以減少檔案大小，同時保持清晰度
+                    scale: 2, // 提高解析度
                     useCORS: true,
                     width: page.offsetWidth,
                     height: page.offsetHeight
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.7);  // 使用 JPEG 格式並設置品質為 0.7
+                const imgData = canvas.toDataURL('image/png'); // 使用PNG避免色塊
                 const imgWidth = pdf.internal.pageSize.getWidth();
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
                 if (i > 0) {
                     pdf.addPage();
                 }
-                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
                 // 更新進度條
                 progressBar.value = ((i + 1) / totalPages) * 100;
             }
+
+            // 恢復box-shadow
+            pages.forEach((page, index) => {
+                page.style.boxShadow = originalBoxShadows[index];
+            });
 
             pdf.save('manuscript.pdf');
             // 隱藏進度視窗
