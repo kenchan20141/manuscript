@@ -123,7 +123,7 @@
         #eye-protection {
             background-color: #FFD700;
             color: #333;
-            transition: none; /* 移除過渡效果，確保穩定 */
+            transition: none;
         }
         #ask-panel {
             position: fixed;
@@ -162,28 +162,28 @@
             cursor: pointer;
         }
         .add-segment-btn {
-            background-color: #FFA500 !important; /* 橙色 */
+            background-color: #FFA500 !important;
             color: white;
         }
         .add-segment-btn:hover {
             background-color: #e69500 !important;
         }
         .save-btn {
-            background-color: #800080 !important; /* 紫色 */
+            background-color: #800080 !important;
             color: white;
         }
         .save-btn:hover {
             background-color: #660066 !important;
         }
         .clear-btn {
-            background-color: #A52A2A !important; /* 棕色 */
+            background-color: #A52A2A !important;
             color: white;
         }
         .clear-btn:hover {
             background-color: #8B2323 !important;
         }
         #submit-question {
-            background-color: #007bff !important; /* 藍色 */
+            background-color: #007bff !important;
             color: white;
             width: 100%;
             padding: 10px;
@@ -202,7 +202,7 @@
             width: 20px;
             height: 20px;
             font-size: 16px;
-            background-color: #dc3545 !important; /* 紅色 */
+            background-color: #dc3545 !important;
             color: white;
             border: none;
             border-radius: 50%;
@@ -254,25 +254,67 @@
             padding: 5px;
             margin-top: 10px;
         }
-        #music-controls {
-            text-align: center;
-            margin-bottom: 10px;
+        #music-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        #music-controls button {
-            padding: 10px 20px;
-            font-size: 14px;
-            cursor: pointer;
+        #music-select {
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #play-pause-btn {
+            padding: 5px 10px;
+            margin-right: 10px;
+            background-color: #007bff;
+            color: white;
             border: none;
-            border-radius: 5px;
-            margin: 5px;
-            transition: background-color 0.3s;
+            border-radius: 4px;
+            cursor: pointer;
         }
-        #music-controls button:hover {
-            background-color: #ddd;
+        #play-pause-btn:hover {
+            background-color: #0056b3;
+        }
+        #progress-bar {
+            width: 200px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 5px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        #progress-bar:hover {
+            opacity: 1;
+        }
+        #progress-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        #progress-bar::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 50%;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
     <div id="controls">
@@ -289,10 +331,13 @@
             <input type="text" id="title-input" placeholder="請輸入題目">
         </div>
     </div>
-    <div id="music-controls">
-        <button id="miyazaki">宮崎駿</button>
-        <button id="relax">放鬆</button>
-        <button id="stop-music">停止音樂</button>
+    <div id="music-panel">
+        <select id="music-select">
+            <option value="b5d5OmmUlPc">宮崎駿</option>
+            <option value="2gIAmAZhWzM">放鬆</option>
+        </select>
+        <button id="play-pause-btn">播放</button>
+        <input type="range" id="progress-bar" min="0" max="100" value="0">
         <div id="youtube-player"></div>
     </div>
     <div id="manuscript"></div>
@@ -332,16 +377,10 @@
     </div>
 
     <script>
-        // 載入 YouTube Iframe API
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        // 定義播放器變數
         var player;
+        var isPlaying = false;
+        var progressInterval;
 
-        // YouTube Iframe API 載入完成後調用
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtube-player', {
                 height: '0',
@@ -355,29 +394,63 @@
                     'modestbranding': 1
                 },
                 events: {
-                    'onReady': onPlayerReady
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
 
         function onPlayerReady(event) {
-            // 播放器準備好後，可以在這裡設置其他參數
+            // 播放器準備好
         }
 
-        // 為音樂選擇按鈕添加事件監聽器
-        document.getElementById('miyazaki').addEventListener('click', function() {
-            player.loadVideoById('b5d5OmmUlPc');
-            player.playVideo();
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                document.getElementById('play-pause-btn').textContent = '暫停';
+                startProgressUpdate();
+            } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                isPlaying = false;
+                document.getElementById('play-pause-btn').textContent = '播放';
+                stopProgressUpdate();
+            } else if (event.data == YT.PlayerState.AD_STARTED) {
+                // 嘗試跳過廣告
+                player.seekTo(player.getDuration());
+            }
+        }
+
+        function startProgressUpdate() {
+            progressInterval = setInterval(function() {
+                if (player && player.getCurrentTime && player.getDuration) {
+                    var progress = (player.getCurrentTime() / player.getDuration()) * 100;
+                    document.getElementById('progress-bar').value = progress;
+                }
+            }, 1000);
+        }
+
+        function stopProgressUpdate() {
+            clearInterval(progressInterval);
+        }
+
+        document.getElementById('play-pause-btn').addEventListener('click', function() {
+            if (isPlaying) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
         });
 
-        document.getElementById('relax').addEventListener('click', function() {
-            player.loadVideoById('2gIAmAZhWzM');
-            player.playVideo();
+        document.getElementById('progress-bar').addEventListener('input', function() {
+            if (player && player.seekTo && player.getDuration) {
+                var seekTo = (this.value / 100) * player.getDuration();
+                player.seekTo(seekTo);
+            }
         });
 
-        // 為停止音樂按鈕添加事件監聽器
-        document.getElementById('stop-music').addEventListener('click', function() {
-            player.stopVideo();
+        document.getElementById('music-select').addEventListener('change', function() {
+            var videoId = this.value;
+            player.loadVideoById(videoId);
+            player.playVideo();
         });
 
         const manuscript = document.getElementById('manuscript');
