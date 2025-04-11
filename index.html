@@ -409,6 +409,30 @@
                 <option value="">選擇音樂</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-deadly.mp3">五大罪</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-rapier.mp3">繼承劍的少女</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Ariadne-Battle.mp3">不屈意志之刃</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/battle-arms.mp3">西部戰鬥</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle.mp3">Battle Theme</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Wanderers-City.mp3">流浪城鎮</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Remotest-Liblary.mp3">沉睡的記憶</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Nostalgia.mp3">麥田懷舊</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/sunbeams.mp3">放學後</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/village.mp3">鄉村生活</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Take-a-Rest.mp3">休息一下</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/winter-snow.mp3">雪鄉</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Forgotten-Place.mp3">被遺忘的地方</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Rest-in-Peace.mp3">安息</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Farewell.mp3">告別</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/reminiscence.mp3">回憶</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/starry-night.mp3">星夜</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/last-wish.mp3">當思念傳到某人耳畔</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/sorrow.mp3">超越悲傷</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/hotarumichi.mp3">螢火蟲之路</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Sky-Airship.mp3">飛艇</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Voyage_SE.mp3">跨越神秘之海</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/main-theme01.mp3">盼望</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/saikai637.mp3">約定之地</option>
             </select>
         </div>
         <div class="progress">
@@ -1154,8 +1178,10 @@
                 const options = musicSelect.options;
                 for (let i = 0; i < options.length; i++) {
                     if (options[i].value === currentMusic) {
-                        const nextIndex = (i + 1) % options.length;
-                        if (nextIndex === 0) break;
+                        let nextIndex = (i + 1) % options.length;
+                        if (nextIndex === 0) {
+                            nextIndex = 1; // 跳過 "選擇音樂"，播放第一首歌
+                        }
                         currentMusic = options[nextIndex].value;
                         musicSelect.value = currentMusic;
                         audio.src = currentMusic;
