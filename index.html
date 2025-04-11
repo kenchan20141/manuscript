@@ -254,12 +254,7 @@
             padding: 5px;
             margin-top: 10px;
         }
-        #youtube-player {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-        }
+        /* 音樂面板樣式 */
         #music-panel {
             position: fixed;
             bottom: 0;
@@ -269,50 +264,76 @@
             color: white;
             padding: 10px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            z-index: 100;
+            justify-content: space-between;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        #music-panel.hidden {
+            transform: translateY(100%);
         }
         #music-controls {
             display: flex;
             align-items: center;
         }
-        #play-btn, #pause-btn {
+        #play-pause-btn {
             background: none;
             border: none;
             color: white;
             font-size: 24px;
             cursor: pointer;
-            margin: 0 5px;
+            margin-right: 10px;
+        }
+        #progress-container {
+            flex-grow: 1;
+            margin: 0 10px;
         }
         #progress-bar {
-            width: 200px;
-            margin: 0 10px;
+            width: 100%;
+            height: 5px;
+            background-color: #555;
+            position: relative;
+            cursor: pointer;
+        }
+        #progress {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0;
         }
         #music-select {
-            margin: 0 10px;
-            padding: 5px;
             background-color: #444;
             color: white;
             border: none;
-            border-radius: 3px;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        #hide-panel-btn {
+        #status {
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        #hide-show-btn {
             background: none;
             border: none;
             color: white;
+            font-size: 18px;
             cursor: pointer;
-            font-size: 14px;
+        }
+        #youtube-player {
+            display: none;
         }
         @media (max-width: 600px) {
-            #music-controls {
-                flex-direction: column;
+            #music-panel {
+                padding: 5px;
             }
-            #progress-bar {
-                width: 100%;
+            #play-pause-btn {
+                font-size: 20px;
             }
-            #music-select, #play-btn, #pause-btn, #hide-panel-btn {
-                margin: 5px 0;
+            #music-select {
+                font-size: 12px;
+            }
+            #status {
+                font-size: 12px;
             }
         }
     </style>
@@ -337,20 +358,6 @@
     </div>
     <div id="manuscript"></div>
     <div id="word-count">字數：0</div>
-    <div id="youtube-player"></div>
-    <div id="music-panel">
-        <div id="music-controls">
-            <button id="play-btn">▶️</button>
-            <button id="pause-btn">⏸️</button>
-            <input type="range" id="progress-bar" min="0" max="100" value="0">
-            <select id="music-select">
-                <option value="miyazaki">宮崎駿</option>
-                <option value="relaxing">輕鬆悠閑</option>
-            </select>
-            <button id="hide-panel-btn">隱藏</button>
-        </div>
-    </div>
-    <button id="show-music-panel" style="position: fixed; bottom: 10px; right: 10px; display: none;">🎵</button>
     <div id="progress-overlay">
         <div id="progress-box">
             <p>正在導出 PDF...</p>
@@ -373,17 +380,33 @@
             </select>
         </div>
         <label for="tone">語氣：</label>
+        <selectocs: pointer;
         <select id="tone">
             <option value="serious">嚴肅正經</option>
             <option value="chen">陳SIR語氣</option>
         </select>
-        <div id="outline-area">
-            <!-- Outline tables will be generated here -->
-        </div>
+        <div id="outline-area"></div>
         <textarea id="question" rows="4" placeholder="請在此輸入您的問題..."></textarea>
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
+    <div id="music-panel">
+        <div id="music-controls">
+            <button id="play-pause-btn">▶️</button>
+            <div id="progress-container">
+                <div id="progress-bar">
+                    <div id="progress"></div>
+                </div>
+            </div>
+            <select id="music-select">
+                <option value="b5d5OmmUlPc">宮崎駿</option>
+                <option value="2gIAmAZhWzM">輕鬆悠閑</option>
+            </select>
+            <span id="status"></span>
+        </div>
+        <button id="hide-show-btn">🔽</button>
+    </div>
+    <div id="youtube-player"></div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -1004,7 +1027,7 @@
 
         async function callAPI(prompt) {
             let attempts = 0;
-            const maxAttempts = API_KEY.length;
+            const maxAttempts = API_KEYS.length;
             while (attempts < maxAttempts) {
                 try {
                     const response = await fetch(API_URL, {
@@ -1052,123 +1075,118 @@
             });
         });
 
-        // Music Panel JavaScript
+        // 音樂面板功能
         let player;
-        let isAdPlaying = false;
+        let isPlaying = false;
+        let isMuted = false;
+        let progressInterval;
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progress = document.getElementById('progress');
+        const musicSelect = document.getElementById('music-select');
+        const status = document.getElementById('status');
+        const hideShowBtn = document.getElementById('hide-show-btn');
+        const musicPanel = document.getElementById('music-panel');
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtube-player', {
                 height: '0',
                 width: '0',
-                videoId: 'b5d5OmmUlPc', // Default to 宮崎駿
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 0,
-                    'showinfo': 0,
-                    'rel': 0,
-                    'fs': 0,
-                    'iv_load_policy': 3,
-                    'modestbranding': 1
-                },
+                videoId: musicSelect.value,
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
 
         function onPlayerReady(event) {
-            // Player is ready
+            // 播放器準備好後的回調
         }
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
-                if (player.getVideoData().isAd) {
-                    isAdPlaying = true;
-                    document.getElementById('music-panel').textContent = '廣告播放中';
-                    player.mute();
-                } else if (isAdPlaying && !player.getVideoData().isAd) {
-                    isAdPlaying = false;
-                    document.getElementById('music-panel').textContent = '音樂播放中';
-                    player.unMute();
-                } else {
-                    document.getElementById('music-panel').textContent = '音樂播放中';
-                }
-                startProgressUpdate();
-            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                stopProgressUpdate();
+                isPlaying = true;
+                playPauseBtn.textContent = '⏸️';
+                startProgress();
+                checkForAd();
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                isPlaying = false;
+                playPauseBtn.textContent = '▶️';
+                stopProgress();
+            } else if (event.data === YT.PlayerState.ENDED) {
+                isPlaying = false;
+                playPauseBtn.textContent = '▶️';
+                progress.style.width = '0%';
             }
         }
 
-        function onPlayerError(event) {
-            console.error('YouTube player error:', event.data);
-        }
-
-        let progressInterval;
-        function updateProgress() {
-            if (player && player.getCurrentTime) {
-                const currentTime = player.getCurrentTime();
-                const duration = player.getDuration();
-                if (duration > 0) {
-                    const progress = (currentTime / duration) * 100;
-                    document.getElementById('progress-bar').value = progress;
-                }
-            }
-        }
-
-        function startProgressUpdate() {
-            progressInterval = setInterval(updateProgress, 1000);
-        }
-
-        function stopProgressUpdate() {
-            clearInterval(progressInterval);
-        }
-
-        document.getElementById('play-btn').addEventListener('click', function() {
-            if (player && player.getPlayerState) {
-                player.playVideo();
-            } else {
-                alert('播放器尚未準備好，請稍候');
-            }
-        });
-
-        document.getElementById('pause-btn').addEventListener('click', function() {
-            if (player && player.getPlayerState) {
+        playPauseBtn.addEventListener('click', function() {
+            if (isPlaying) {
                 player.pauseVideo();
             } else {
-                alert('播放器尚未準備好，請稍候');
+                player.playVideo();
             }
         });
 
-        document.getElementById('progress-bar').addEventListener('input', function() {
-            if (player && player.getDuration) {
-                const progress = this.value;
+        function startProgress() {
+            stopProgress(); // 確保清除之前的計時器
+            progressInterval = setInterval(function() {
+                const currentTime = player.getCurrentTime();
                 const duration = player.getDuration();
-                const seekTo = (progress / 100) * duration;
-                player.seekTo(seekTo, true);
+                const percentage = (currentTime / duration) * 100;
+                progress.style.width = percentage + '%';
+            }, 1000);
+        }
+
+        function stopProgress() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
             }
+        }
+
+        progressBar.addEventListener('click', function(e) {
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const width = rect.width;
+            const percentage = (clickX / width) * 100;
+            const seekTime = (percentage / 100) * player.getDuration();
+            player.seekTo(seekTime, true);
         });
 
-        document.getElementById('music-select').addEventListener('change', function() {
-            const selected = this.value;
-            let videoId;
-            if (selected === 'miyazaki') {
-                videoId = 'b5d5OmmUlPc';
-            } else if (selected === 'relaxing') {
-                videoId = '2gIAmAZhWzM';
-            }
+        musicSelect.addEventListener('change', function() {
+            const videoId = this.value;
             player.loadVideoById(videoId);
+            player.playVideo();
         });
 
-        document.getElementById('hide-panel-btn').addEventListener('click', function() {
-            document.getElementById('music-panel').style.display = 'none';
-            document.getElementById('show-music-panel').style.display = 'block';
-        });
+        function checkForAd() {
+            const iframe = document.getElementById('youtube-player');
+            const playerState = player.getPlayerState();
+            // YouTube API 未提供直接的 getAdState 方法，需間接判斷
+            if (playerState === YT.PlayerState.PLAYING && player.getCurrentTime() < 5) {
+                // 假設前5秒可能是廣告
+                status.textContent = '廣告播放中';
+                player.mute();
+                isMuted = true;
+                setTimeout(checkForAd, 1000);
+            } else {
+                status.textContent = '';
+                if (isMuted) {
+                    player.unMute();
+                    isMuted = false;
+                }
+            }
+        }
 
-        document.getElementById('show-music-panel').addEventListener('click', function() {
-            document.getElementById('music-panel').style.display = 'flex';
-            document.getElementById('show-music-panel').style.display = 'none';
+        hideShowBtn.addEventListener('click', function() {
+            if (musicPanel.classList.contains('hidden')) {
+                musicPanel.classList.remove('hidden');
+                hideShowBtn.textContent = '🔽';
+            } else {
+                musicPanel.classList.add('hidden');
+                hideShowBtn.textContent = '🔼';
+            }
         });
     </script>
 </body>
