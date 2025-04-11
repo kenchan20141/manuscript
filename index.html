@@ -334,7 +334,7 @@
     <div id="bilibili-player" style="width:0;height:0;"></div>
     <div id="music-panel">
         <div id="music-controls">
-            <button id="play-btn" class="music-btn">▶️</button>
+            <button id="play-btn" class="music-btn" disabled>▶️</button>
             <button id="pause-btn" class="music-btn">⏸️</button>
             <input type="range" id="progress-bar" min="0" max="100" value="0">
             <select id="music-select">
@@ -1048,6 +1048,8 @@
 
         // Music Panel JavaScript with Bilibili Player
         let player;
+        let isPlayerReady = false;
+
         function loadVideo(bvid) {
             if (player) {
                 player.destroy();
@@ -1058,9 +1060,20 @@
                 autoplay: false
             });
 
-            // Bilibili Player event listeners (adjust method names based on actual API)
+            // 假設 Bilibili Player 有 'ready' 事件
+            player.on('ready', function() {
+                isPlayerReady = true;
+                console.log('播放器已準備好');
+                document.getElementById('play-btn').disabled = false;
+            });
+
+            // 其他事件監聽
             player.on('play', startProgressUpdate);
             player.on('pause', stopProgressUpdate);
+            player.on('error', function(err) {
+                console.error('播放器錯誤:', err);
+                alert('視頻加載失敗，請稍後再試');
+            });
         }
 
         document.getElementById('music-select').addEventListener('change', function() {
@@ -1075,7 +1088,7 @@
         });
 
         document.getElementById('play-btn').addEventListener('click', function() {
-            if (player) {
+            if (isPlayerReady) {
                 player.play();
             } else {
                 alert('播放器尚未準備好，請稍候');
@@ -1091,7 +1104,7 @@
         let progressInterval;
         function updateProgress() {
             if (player) {
-                // Note: Replace with actual Bilibili API methods
+                // 注意：需根據實際 Bilibili Player API 替換方法
                 const currentTime = player.getCurrentTime ? player.getCurrentTime() : 0;
                 const duration = player.getDuration ? player.getDuration() : 0;
                 if (duration > 0) {
@@ -1112,7 +1125,7 @@
         document.getElementById('progress-bar').addEventListener('input', function() {
             if (player) {
                 const progress = this.value;
-                // Note: Replace with actual Bilibili API method
+                // 注意：需根據實際 Bilibili Player API 替換方法
                 const duration = player.getDuration ? player.getDuration() : 0;
                 const seekTo = (progress / 100) * duration;
                 if (player.seekTo) player.seekTo(seekTo);
@@ -1129,8 +1142,8 @@
             document.getElementById('show-music-panel').style.display = 'none';
         });
 
-        // Load default video on page load
-        loadVideo('BV1qg4y1q7Em'); // Default to 宮崎駿
+        // 頁面加載時載入預設視頻
+        loadVideo('BV1qg4y1q7Em'); // 預設為宮崎駿
     </script>
 </body>
 </html>
