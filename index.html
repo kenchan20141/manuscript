@@ -256,7 +256,7 @@
         }
         #music-player {
             position: fixed;
-            bottom: 0;
+            bottom: 50px;
             left: 0;
             width: 100%;
             background-color: #333;
@@ -351,27 +351,29 @@
         /* 倒計時面板樣式 */
         #timer-panel {
             position: fixed;
-            bottom: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #fff;
-            padding: 5px 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 999;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background-color: #f0f0f0;
+            padding: 5px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            max-width: 400px;
-            width: auto;
+            align-items: center;
+            z-index: 1001;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
         #timer-panel select, #timer-panel button {
             padding: 5px;
             font-size: 12px;
             margin: 0 2px;
-            border-radius: 3px;
+            border-radius: 4px;
             border: 1px solid #ccc;
             cursor: pointer;
+        }
+        #timer-panel select {
+            background-color: #f9f9f9;
         }
         #timer-panel button {
             background-color: #4CAF50;
@@ -386,7 +388,7 @@
             cursor: not-allowed;
         }
         #timer-display {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #333;
             margin: 0 10px;
@@ -416,25 +418,6 @@
         <div style="text-align: center; margin-top: 10px;">
             <input type="text" id="title-input" placeholder="請輸入題目">
         </div>
-    </div>
-    <div id="timer-panel">
-        <label for="genre-select">文類：</label>
-        <select id="genre-select" onchange="toggleStructureSelect()">
-            <option value="敘事抒情">敘事抒情</option>
-            <option value="議論">議論</option>
-        </select>
-        <div id="structure-select-div" style="display: inline-block;">
-            <label for="structure-select">結構：</label>
-            <select id="structure-select">
-                <option value="起承轉合">起承轉合</option>
-                <option value="三線">三線</option>
-            </select>
-        </div>
-        <button id="start-timer" class="action-btn">▶️</button>
-        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
-        <button id="reset-timer" class="action-btn">🔄</button>
-        <div id="timer-display">01:30:00</div>
-        <div id="timer-message"></div>
     </div>
     <div id="manuscript"></div>
     <div id="word-count">字數：0</div>
@@ -517,6 +500,23 @@
     </div>
     <button id="show-player">🎵</button>
     <audio id="audio" preload="auto"></audio>
+    <div id="timer-panel">
+        <select id="genre-select" onchange="toggleStructureSelect()">
+            <option value="敘事抒情">敘事抒情</option>
+            <option value="議論">議論</option>
+        </select>
+        <div id="structure-select-div" style="display: inline-block;">
+            <select id="structure-select">
+                <option value="起承轉合">起承轉合</option>
+                <option value="三線">三線</option>
+            </select>
+        </div>
+        <button id="start-timer" class="action-btn">▶️</button>
+        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
+        <button id="reset-timer" class="action-btn">🔄</button>
+        <div id="timer-display">01:30:00</div>
+        <div id="timer-message"></div>
+    </div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -545,7 +545,6 @@
         let isPlaying = false;
         let currentMusic = '';
 
-        // 倒計時相關變量
         let timerInterval;
         let totalTime = 5400; // 90分鐘 = 5400秒
         let remainingTime = totalTime;
@@ -1205,7 +1204,6 @@
             });
         });
 
-        // 音樂播放器功能
         musicSelect.addEventListener('change', function() {
             const selectedMusic = this.value;
             if (selectedMusic) {
@@ -1286,7 +1284,6 @@
             showPlayerBtn.style.display = 'none';
         });
 
-        // 倒計時功能
         function toggleStructureSelect() {
             const genre = document.getElementById('genre-select').value;
             const structureDiv = document.getElementById('structure-select-div');
@@ -1295,7 +1292,7 @@
             } else {
                 structureDiv.style.display = 'none';
             }
-            resetTimer(); // 切換文類時重置倒計時
+            resetTimer();
         }
 
         function startTimer() {
@@ -1356,30 +1353,30 @@
             if (genre === '敘事抒情') {
                 if (structure === '起承轉合') {
                     prompts = [
-                        { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
-                        { time: totalTime - 1800, message: '應已完成「起」' }, // 30分鐘
-                        { time: totalTime - 3300, message: '應已完成「承」' }, // 55分鐘
-                        { time: totalTime - 4800, message: '應已完成「轉」' }, // 80分鐘
+                        { time: totalTime - 900, message: '應已完成大綱' },
+                        { time: totalTime - 1800, message: '應已完成「起」' },
+                        { time: totalTime - 3300, message: '應已完成「承」' },
+                        { time: totalTime - 4800, message: '應已完成「轉」' },
                         { time: 0, message: '時間到，練習結束' }
                     ];
                 } else if (structure === '三線') {
                     prompts = [
-                        { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
-                        { time: totalTime - 1500, message: '應已完成「起」' }, // 25分鐘
-                        { time: totalTime - 2580, message: '應已完成「一線」' }, // 43分鐘
-                        { time: totalTime - 3660, message: '應已完成「二線」' }, // 61分鐘
-                        { time: totalTime - 4740, message: '應已完成「三線」' }, // 79分鐘
+                        { time: totalTime - 900, message: '應已完成大綱' },
+                        { time: totalTime - 1500, message: '應已完成「起」' },
+                        { time: totalTime - 2580, message: '應已完成「一線」' },
+                        { time: totalTime - 3660, message: '應已完成「二線」' },
+                        { time: totalTime - 4740, message: '應已完成「三線」' },
                         { time: 0, message: '時間到，練習結束' }
                     ];
                 }
             } else if (genre === '議論') {
                 prompts = [
-                    { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
-                    { time: totalTime - 1500, message: '應已完成「起」' }, // 25分鐘
-                    { time: totalTime - 2100, message: '應已完成「結構段一」' }, // 35分鐘
-                    { time: totalTime - 3000, message: '應已完成「結構段二」' }, // 50分鐘
-                    { time: totalTime - 3900, message: '應已完成「結構段三」' }, // 65分鐘
-                    { time: totalTime - 4800, message: '應已完成「結構段四」' }, // 80分鐘
+                    { time: totalTime - 900, message: '應已完成大綱' },
+                    { time: totalTime - 1500, message: '應已完成「起」' },
+                    { time: totalTime - 2100, message: '應已完成「結構段一」' },
+                    { time: totalTime - 3000, message: '應已完成「結構段二」' },
+                    { time: totalTime - 3900, message: '應已完成「結構段三」' },
+                    { time: totalTime - 4800, message: '應已完成「結構段四」' },
                     { time: 0, message: '時間到，練習結束' }
                 ];
             }
