@@ -513,7 +513,7 @@
         <div id="timer-message"></div>
     </div>
 
-   <script>
+  <script>
     const manuscript = document.getElementById('manuscript');
     const wordCountDiv = document.getElementById('word-count');
     const progressOverlay = document.getElementById('progress-overlay');
@@ -1047,15 +1047,11 @@
     }
 
     document.getElementById('submit-question').addEventListener('click', async function() {
-        // 禁用按鍵
-        this.disabled = true;
-
         const category = document.getElementById('category').value;
         const tone = document.getElementById('tone').value;
         const question = document.getElementById('question').value.trim();
         if (!question) {
             alert('請輸入您的問題');
-            this.disabled = false; // 啟用按鍵
             return;
         }
 
@@ -1086,6 +1082,7 @@
         prompt += `\n\n請直接提供最終答案，不包含任何思考過程或標籤。`;
 
         document.getElementById('response').innerHTML = '陳SIR正在思考...';
+        document.getElementById('submit-question').disabled = true;
 
         try {
             const response = await callAPI(prompt);
@@ -1099,8 +1096,7 @@
             }
             document.getElementById('response').innerHTML = '';
         } finally {
-            // 啟用按鍵
-            this.disabled = false;
+            document.getElementById('submit-question').disabled = false;
         }
     });
 
@@ -1309,11 +1305,10 @@
         if (isTimerRunning) return;
         isTimerRunning = true;
         document.getElementById('toggle-timer').textContent = '⏸️';
-        setPrompts();
-        timerInterval = setInterval(updateTimer, 1000);
-        // 禁用選單
         document.getElementById('genre-select').disabled = true;
         document.getElementById('structure-select').disabled = true;
+        setPrompts();
+        timerInterval = setInterval(updateTimer, 1000);
     }
 
     function pauseTimer() {
@@ -1331,11 +1326,10 @@
             document.getElementById('timer-display').textContent = formatTime(remainingTime);
             document.getElementById('timer-message').textContent = '';
             document.getElementById('toggle-timer').textContent = '▶️';
-            prompts = [];
-            promptIndex = 0;
-            // 啟用選單
             document.getElementById('genre-select').disabled = false;
             document.getElementById('structure-select').disabled = false;
+            prompts = [];
+            promptIndex = 0;
         }
     }
 
