@@ -303,14 +303,6 @@
         #music-player .progress input[type="range"] {
             width: 100%;
         }
-        #music-player .volume {
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        #music-player .volume input[type="range"] {
-            width: 80px;
-        }
         #music-player .mode {
             margin-left: 10px;
             flex-shrink: 0;
@@ -352,9 +344,6 @@
             #music-player .controls select {
                 max-width: 100px;
                 font-size: 12px;
-            }
-            #music-player .volume input[type="range"] {
-                width: 50px;
             }
             #music-player .mode select {
                 font-size: 12px;
@@ -424,10 +413,7 @@
             </select>
         </div>
         <div class="progress">
-            <input type="range" id="progress-bar" value="0" min="0" max="100">
-        </div>
-        <div class="volume">
-            <input type="range" id="volume-bar" value="50" min="0" max="100">
+            <input type="range" id="progress-bar" value="0" min="0" max="100" disabled>
         </div>
         <div class="mode">
             <select id="play-mode">
@@ -459,7 +445,6 @@
         const playPauseBtn = document.getElementById('play-pause');
         const musicSelect = document.getElementById('music-select');
         const progressBarMusic = document.getElementById('progress-bar');
-        const volumeBar = document.getElementById('volume-bar');
         const playMode = document.getElementById('play-mode');
         const hidePlayerBtn = document.getElementById('hide-player');
         const showPlayerBtn = document.getElementById('show-player');
@@ -467,6 +452,7 @@
 
         let isPlaying = false;
         let currentMusic = '';
+        let isDraggingProgress = false;
 
         function getRows(page) {
             return page % 2 === 1 ? 15 : 20;
@@ -1129,6 +1115,7 @@
                 isPlaying = true;
                 playPauseBtn.textContent = '⏸️';
                 currentMusic = selectedMusic;
+                progressBarMusic.disabled = false; // 啟用進度條
             }
         });
 
@@ -1153,17 +1140,29 @@
             progressBarMusic.value = progress;
         });
 
-        progressBarMusic.addEventListener('input', function() {
-            if (!audio.duration) {
-                console.log('音樂未載入，無法跳轉');
-                return;
+        progressBarMusic.addEventListener('mousedown', function() {
+            if (isPlaying) {
+                audio.pause();
+                isDraggingProgress = true;
             }
-            const time = (this.value / 100) * audio.duration;
-            audio.currentTime = time;
         });
 
-        volumeBar.addEventListener('input', function() {
-            audio.volume = this.value / 100;
+        progressBarMusic.addEventListener('input', function() {
+            if (audio.duration) {
+                const time = (this.value / 100) * audio.duration;
+                audio.currentTime = time;
+            }
+        });
+
+        progressBarMusic.addEventListener('mouseup', function() {
+            if (isDraggingProgress) {
+                audio.play();
+                isDraggingProgress = false;
+            }
+        });
+
+        audio.addEventListener('loadedmetadata', function() {
+            progressBarMusic.disabled = false;
         });
 
         audio.addEventListener('ended', function() {
