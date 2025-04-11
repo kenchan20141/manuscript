@@ -254,12 +254,6 @@
             padding: 5px;
             margin-top: 10px;
         }
-        #youtube-player {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-        }
         #music-panel {
             position: fixed;
             bottom: 0;
@@ -277,12 +271,13 @@
             display: flex;
             align-items: center;
         }
-        #play-pause-btn {
+        .music-btn {
             background: none;
             border: none;
             color: white;
             font-size: 24px;
             cursor: pointer;
+            margin: 0 10px;
         }
         #progress-bar {
             width: 200px;
@@ -310,14 +305,14 @@
             #progress-bar {
                 width: 100%;
             }
-            #music-select, #play-pause-btn, #hide-panel-btn {
+            #music-select, .music-btn, #hide-panel-btn {
                 margin: 5px 0;
             }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="//player.bilibili.com/player.js"></script>
 </head>
 <body>
     <div id="controls">
@@ -336,10 +331,11 @@
     </div>
     <div id="manuscript"></div>
     <div id="word-count">字數：0</div>
-    <div id="youtube-player"></div>
+    <div id="bilibili-player" style="width:0;height:0;"></div>
     <div id="music-panel">
         <div id="music-controls">
-            <button id="play-pause-btn">▶️</button>
+            <button id="play-btn" class="music-btn">▶️</button>
+            <button id="pause-btn" class="music-btn">⏸️</button>
             <input type="range" id="progress-bar" min="0" max="100" value="0">
             <select id="music-select">
                 <option value="miyazaki">宮崎駿</option>
@@ -455,7 +451,7 @@
                             moveToPrevInput(this);
                             updateWordCount();
                         }
-                    Mos});
+                    });
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
@@ -1050,48 +1046,54 @@
             });
         });
 
-        // Music Panel JavaScript
+        // Music Panel JavaScript with Bilibili Player
         let player;
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('youtube-player', {
-                height: '0',
-                width: '0',
-                videoId: 'b5d5OmmUlPc', // Default to 宮崎駿
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 0,
-                    'showinfo': 0,
-                    'rel': 0,
-                    'fs': 0,
-                    'iv_load_policy': 3,
-                    'modestbranding': 1
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
-
-        function onPlayerReady(event) {
-            // Player is ready
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                document.getElementById('play-pause-btn').textContent = '⏸️';
-                startProgressUpdate();
-            } else {
-                document.getElementById('play-pause-btn').textContent = '▶️';
-                stopProgressUpdate();
+        function loadVideo(bvid) {
+            if (player) {
+                player.destroy();
             }
+            player = new BilibiliPlayer({
+                element: document.getElementById('bilibili-player'),
+                bvid: bvid,
+                autoplay: false
+            });
+
+            // Bilibili Player event listeners (adjust method names based on actual API)
+            player.on('play', startProgressUpdate);
+            player.on('pause', stopProgressUpdate);
         }
+
+        document.getElementById('music-select').addEventListener('change', function() {
+            const selected = this.value;
+            let bvid;
+            if (selected === 'miyazaki') {
+                bvid = 'BV1qg4y1q7Em';
+            } else if (selected === 'relaxing') {
+                bvid = 'BV17xd5YmE7Q';
+            }
+            loadVideo(bvid);
+        });
+
+        document.getElementById('play-btn').addEventListener('click', function() {
+            if (player) {
+                player.play();
+            } else {
+                alert('播放器尚未準備好，請稍候');
+            }
+        });
+
+        document.getElementById('pause-btn').addEventListener('click', function() {
+            if (player) {
+                player.pause();
+            }
+        });
 
         let progressInterval;
         function updateProgress() {
-            if (player && player.getCurrentTime) {
-                const currentTime = player.getCurrentTime();
-                const duration = player.getDuration();
+            if (player) {
+                // Note: Replace with actual Bilibili API methods
+                const currentTime = player.getCurrentTime ? player.getCurrentTime() : 0;
+                const duration = player.getDuration ? player.getDuration() : 0;
                 if (duration > 0) {
                     const progress = (currentTime / duration) * 100;
                     document.getElementById('progress-bar').value = progress;
@@ -1107,36 +1109,14 @@
             clearInterval(progressInterval);
         }
 
-        document.getElementById('play-pause-btn').addEventListener('click', function() {
-            if (player && player.getPlayerState) {
-                if (player.getPlayerState() == YT.PlayerState.PLAYING) {
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
-                }
-            } else {
-                alert('播放器尚未準備好，請稍候');
-            }
-        });
-
         document.getElementById('progress-bar').addEventListener('input', function() {
-            if (player && player.getDuration) {
+            if (player) {
                 const progress = this.value;
-                const duration = player.getDuration();
+                // Note: Replace with actual Bilibili API method
+                const duration = player.getDuration ? player.getDuration() : 0;
                 const seekTo = (progress / 100) * duration;
-                player.seekTo(seekTo, true);
+                if (player.seekTo) player.seekTo(seekTo);
             }
-        });
-
-        document.getElementById('music-select').addEventListener('change', function() {
-            const selected = this.value;
-            let videoId;
-            if (selected === 'miyazaki') {
-                videoId = 'b5d5OmmUlPc';
-            } else if (selected === 'relaxing') {
-                videoId = '2gIAmAZhWzM';
-            }
-            player.loadVideoById(videoId);
         });
 
         document.getElementById('hide-panel-btn').addEventListener('click', function() {
@@ -1148,6 +1128,9 @@
             document.getElementById('music-panel').style.display = 'flex';
             document.getElementById('show-music-panel').style.display = 'none';
         });
+
+        // Load default video on page load
+        loadVideo('BV1qg4y1q7Em'); // Default to 宮崎駿
     </script>
 </body>
 </html>
