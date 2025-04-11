@@ -620,25 +620,72 @@
         }
 
         function handleInput(currentInput) {
-            const value = currentInput.value;
-            if (value.length > 0) {
-                const chars = value.split('');
-                let input = currentInput;
-                for (let char of chars) {
-                    input.value = char;
-                    updateWordCount();
-                    let nextInput = getNextInput(input);
-                    if (!nextInput) {
-                        addPage();
-                        nextInput = getNextInput(input);
-                    }
-                    input = nextInput;
-                }
-                if (input) input.focus();
-            } else {
-                updateWordCount();
+    // 收集所有輸入框
+    const allInputs = [];
+    for (let page = 1; page <= pageCount; page++) {
+        const rows = getRows(page);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
             }
         }
+    }
+
+    // 獲取當前輸入框的索引和新文字
+    const index = allInputs.indexOf(currentInput);
+    const newText = currentInput.value;
+    if (newText.length === 0) return; // 若無新文字則退出
+
+    // 清空當前輸入框
+    currentInput.value = '';
+
+    // 收集當前所有文字
+    const chars = allInputs.map(input => input.value || '');
+
+    // 將新文字分割並插入到指定位置
+    const newChars = newText.split('');
+    chars.splice(index, 0, ...newChars);
+
+    // 確保有足夠的輸入框
+    while (allInputs.length < chars.length) {
+        addPage();
+        const newPage = pageCount;
+        const rows = getRows(newPage);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${newPage}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
+            }
+        }
+    }
+
+    // 從插入點開始重新分配文字
+    for (let i = index; i < chars.length; i++) {
+        if (i < allInputs.length) {
+            allInputs[i].value = chars[i];
+        } else {
+            break; // 防止溢出
+        }
+    }
+
+    // 將焦點移到插入文字後的下一個輸入框
+    const nextIndex = index + newChars.length;
+    if (nextIndex < allInputs.length) {
+        allInputs[nextIndex].focus();
+    } else {
+        allInputs[allInputs.length - 1].focus(); // 若到末尾，聚焦最後一個
+    }
+
+    // 更新字數
+    updateWordCount();
+}
 
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
