@@ -254,51 +254,36 @@
             padding: 5px;
             margin-top: 10px;
         }
-        #music-panel {
+        /* 音樂播放器樣式 */
+        #music-player {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #fff;
-            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            background-color: #333;
+            color: white;
             padding: 10px;
             display: flex;
+            justify-content: space-around;
             align-items: center;
-            justify-content: space-between;
             z-index: 1000;
         }
-        #music-select {
-            flex: 1;
-            margin-right: 10px;
+        #music-player select, #music-player button, #music-player input {
+            margin: 0 5px;
         }
-        #play-pause-btn {
+        #music-progress-bar {
+            width: 50%;
+        }
+        #hide-btn {
             background: none;
             border: none;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        #progress-bar {
-            flex: 2;
-            margin: 0 10px;
-        }
-        #hide-panel {
-            background-color: #dc3545;
             color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
+            font-size: 20px;
             cursor: pointer;
         }
         @media (max-width: 600px) {
-            #music-panel {
-                padding: 5px;
-            }
-            #play-pause-btn {
-                font-size: 20px;
-            }
-            #hide-panel {
-                padding: 3px 6px;
-                font-size: 12px;
+            #music-progress-bar {
+                width: 30%;
             }
         }
     </style>
@@ -355,18 +340,20 @@
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
-    <div id="music-panel">
+    <!-- 音樂播放器 -->
+    <div id="music-player">
         <select id="music-select">
-            <option value="">選擇音樂</option>
-            <option value="宮崎駿">宮崎駿</option>
-            <option value="輕鬆悠閑">輕鬆悠閑</option>
+            <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
+            <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
         </select>
-        <button id="play-pause-btn">▶️</button>
-        <input type="range" id="progress-bar" min="0" max="100" value="0">
-        <button id="hide-panel">隱藏</button>
-    </div>
-    <div id="music-player" style="display: none;">
-        <iframe id="music-iframe" src="" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+        <button id="play-btn">▶️</button>
+        <button id="pause-btn">⏸️</button>
+        <input type="range" id="music-progress-bar" min="0" max="100" value="0">
+        <select id="loop-select">
+            <option value="loop" selected>單曲循環</option>
+            <option value="next">自動播放下首</option>
+        </select>
+        <button id="hide-btn">🔽</button>
     </div>
 
     <script>
@@ -871,7 +858,7 @@
             alert('大綱已儲存');
         }
 
-        function clearArgumentOutline() {
+        bonusfunction clearArgumentOutline() {
             if (confirm('確定要清空大綱嗎？')) {
                 const table = document.getElementById('argumentOutlineTable');
                 const rows = table.rows;
@@ -907,7 +894,7 @@
             if (category === '敘事抒情') {
                 prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
             } else if (category === '議論') {
-                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外antle;3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
+                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
             }
 
             if (tone === 'chen') {
@@ -1036,79 +1023,61 @@
             });
         });
 
-        // Music Panel JavaScript
+        // 音樂播放器邏輯
+        const audio = new Audio();
         const musicSelect = document.getElementById('music-select');
-        const playPauseBtn = document.getElementById('play-pause-btn');
-        const progressBar = document.getElementById('progress-bar');
-        const hidePanelBtn = document.getElementById('hide-panel');
-        const musicIframe = document.getElementById('music-iframe');
-        let isPlaying = false;
-        let currentMusic = '';
-
-        const musicUrls = {
-            '宮崎駿': '//player.bilibili.com/player.html?isOutside=true&aid=919192153&bvid=BV17u4y1V7ub&cid=1352690388&p=1',
-            '輕鬆悠閑': '//player.bilibili.com/player.html?isOutside=true&aid=114311460619473&bvid=BV1cxduYVE1d&cid=29329983525&p=1'
-        };
+        const playBtn = document.getElementById('play-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const musicProgressBar = document.getElementById('music-progress-bar');
+        const loopSelect = document.getElementById('loop-select');
+        const hideBtn = document.getElementById('hide-btn');
+        const musicPlayer = document.getElementById('music-player');
 
         musicSelect.addEventListener('change', function() {
-            currentMusic = this.value;
-            if (currentMusic) {
-                musicIframe.src = musicUrls[currentMusic];
-                isPlaying = false;
-                playPauseBtn.textContent = '▶️';
+            audio.src = this.value;
+            audio.play();
+        });
+
+        playBtn.addEventListener('click', function() {
+            audio.play();
+        });
+
+        pauseBtn.addEventListener('click', function() {
+            audio.pause();
+        });
+
+        audio.addEventListener('timeupdate', function() {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            musicProgressBar.value = progress;
+        });
+
+        musicProgressBar.addEventListener('input', function() {
+            const time = (this.value / 100) * audio.duration;
+            audio.currentTime = time;
+        });
+
+        audio.addEventListener('ended', function() {
+            const loopOption = loopSelect.value;
+            if (loopOption === 'loop') {
+                audio.play();
+            } else {
+                const select = musicSelect;
+                const currentIndex = select.selectedIndex;
+                const nextIndex = (currentIndex + 1) % select.options.length;
+                select.selectedIndex = nextIndex;
+                audio.src = select.value;
+                audio.play();
             }
         });
 
-        playPauseBtn.addEventListener('click', function() {
-            if (currentMusic) {
-                if (isPlaying) {
-                    musicIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                    playPauseBtn.textContent = '▶️';
-                } else {
-                    musicIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-                    playPauseBtn.textContent = '⏸️';
-                }
-                isPlaying = !isPlaying;
+        hideBtn.addEventListener('click', function() {
+            if (musicPlayer.style.display === 'none') {
+                musicPlayer.style.display = 'flex';
+                this.textContent = '🔽';
+            } else {
+                musicPlayer.style.display = 'none';
+                this.textContent = '🔼';
             }
-        });
-
-        progressBar.addEventListener('input', function() {
-            if (currentMusic) {
-                const seekTime = (this.value / 100) * musicIframe.contentWindow.document.querySelector('video').duration;
-                musicIframe.contentWindow.postMessage(`{"event":"command","func":"seekTo","args":[${seekTime}, true]}`, '*');
-            }
-        });
-
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.eventName === 'onStateChange') {
-                const state = event.data.info;
-                if (state === 1) {
-                    isPlaying = true;
-                    playPauseBtn.textContent = '⏸️';
-                } else if (state === 2) {
-                    isPlaying = false;
-                    playPauseBtn.textContent = '▶️';
-                }
-            } else if (event.data && event.data.eventName === 'onProgress') {
-                const progress = event.data.info;
-                progressBar.value = progress;
-            }
-        });
-
-        hidePanelBtn.addEventListener('click', function() {
-            document.getElementById('music-panel').style.display = 'none';
-        });
-
-        const showPanelBtn = document.createElement('button');
-        showPanelBtn.textContent = '顯示音樂面板';
-        showPanelBtn.style.position = 'fixed';
-        showPanelBtn.style.bottom = '10px';
-        showPanelBtn.style.right = '10px';
-        showPanelBtn.style.zIndex = '1001';
-        document.body.appendChild(showPanelBtn);
-
-        showPanelBtn.addEventListener('click', function() {
-            document.getElementById('music-panel').style.display = 'flex';
         });
     </script>
 </body>
