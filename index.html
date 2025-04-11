@@ -622,92 +622,25 @@
         }
 
         function handleInput(currentInput) {
-    const value = currentInput.value;
-    if (value.length === 0) {
-        return;
-    }
-
-    // 將新輸入的文字分割成字符陣列
-    const chars = value.split('');
-    let input = currentInput;
-
-    // 獲取光標位置以判斷插入點（文字前或後）
-    const selectionStart = currentInput.selectionStart;
-    const isInsertBefore = selectionStart === 0; // 光標在文字前
-
-    // 隊列初始為新輸入的文字
-    const queue = [...chars];
-    let nextInput;
-
-    if (isInsertBefore) {
-        // 文字前插入：新文字先進入隊列，原有文字後移
-        const originalValue = input.value; // 保存原有內容
-        input.value = queue.shift(); // 第一個新字符放入當前輸入框
-
-        // 開始移動後續文字
-        nextInput = getNextInput(input);
-        if (!nextInput && queue.length > 0) {
-            addPage();
-            nextInput = getNextInput(input);
-        }
-        if (nextInput) {
-            queue.push(originalValue); // 原有文字加入隊列
-            input = nextInput;
-        }
-    } else {
-        // 文字後插入：保留原有文字，新文字從下一個輸入框開始
-        const originalValue = input.value;
-        nextInput = getNextInput(input);
-        if (!nextInput) {
-            addPage();
-            nextInput = getNextInput(input);
-        }
-        input = nextInput;
-    }
-
-    // 處理隊列中的文字並移動後續內容
-    while (queue.length > 0) {
-        const nextValue = input.value; // 保存當前輸入框的內容
-        input.value = queue.shift(); // 從隊列取出字符放入輸入框
-        queue.push(nextValue); // 原內容加入隊列末尾
-
-        nextInput = getNextInput(input);
-        if (!nextInput && queue.length > 0) {
-            addPage();
-            nextInput = getNextInput(input);
-        }
-        input = nextInput;
-        if (!input) break; // 沒有下一個輸入框時退出
-    }
-
-    // 將焦點設置到插入後的下一個輸入框
-    if (input) {
-        input.focus();
-    } else {
-        const allInputs = getAllInputs();
-        allInputs[allInputs.length - 1].focus();
-    }
-
-    updateWordCount();
-}
-
-// 輔助函數：獲取所有輸入框（僅用於焦點設置的最後情況）
-function getAllInputs() {
-    const allInputs = [];
-    for (let page = 1; page <= pageCount; page++) {
-        const rows = getRows(page);
-        const cols = getCols();
-        for (let row = 1; row <= rows; row++) {
-            for (let col = 1; col <= cols; col++) {
-                const input = document.querySelector(
-                    `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                );
-                if (input) allInputs.push(input);
+            const value = currentInput.value;
+            if (value.length > 0) {
+                const chars = value.split('');
+                let input = currentInput;
+                for (let char of chars) {
+                    input.value = char;
+                    updateWordCount();
+                    let nextInput = getNextInput(input);
+                    if (!nextInput) {
+                        addPage();
+                        nextInput = getNextInput(input);
+                    }
+                    input = nextInput;
+                }
+                if (input) input.focus();
+            } else {
+                updateWordCount();
             }
         }
-    }
-    return allInputs;
-}
 
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
