@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -127,20 +128,20 @@
             transition: none;
         }
         #ask-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px 20px 80px 20px; /* 增加底部padding */
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            z-index: 1001;
-            width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            display: none;
-        }
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 1003; /* 原為 1001，改為 1003 */
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: none;
+}
         #ask-panel h2 {
             margin-top: 0;
             text-align: center;
@@ -619,70 +620,73 @@
             updateWordCount();
         }
 
-        function getAllInputsInOrder() {
-            const inputs = [];
-            for (let page = 1; page <= pageCount; page++) {
-                const rows = getRows(page);
-                const cols = getCols();
-                for (let row = 1; row <= rows; row++) {
-                    for (let col = 1; col <= cols; col++) {
-                        const input = document.querySelector(
-                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                        );
-                        inputs.push(input);
-                    }
-                }
+       function handleInput(currentInput) {
+    // 收集所有輸入框
+    const allInputs = [];
+    for (let page = 1; page <= pageCount; page++) {
+        const rows = getRows(page);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
             }
-            return inputs;
         }
+    }
 
-        function handleInput(currentInput) {
-            const allInputs = getAllInputsInOrder();
-            const currentIndex = allInputs.indexOf(currentInput);
-            if (currentIndex === -1) return;
+    // 獲取當前輸入框的索引和新文字
+    const index = allInputs.indexOf(currentInput);
+    const newText = currentInput.value;
+    if (newText.length === 0) return; // 若無新文字則退出
 
-            const newText = currentInput.value;
-            currentInput.value = ''; // 清空當前輸入框，避免重複
+    // 清空當前輸入框
+    currentInput.value = '';
 
-            // 收集從當前輸入框開始到最後一個有文字的輸入框的所有文字
-            let subsequentText = '';
-            for (let i = currentIndex; i < allInputs.length; i++) {
-                const input = allInputs[i];
-                if (input.value) {
-                    subsequentText += input.value;
-                    input.value = '';
-                } else {
-                    break;
-                }
+    // 收集當前所有文字
+    const chars = allInputs.map(input => input.value || '');
+
+    // 將新文字分割並插入到指定位置
+    const newChars = newText.split('');
+    chars.splice(index, 0, ...newChars);
+
+    // 確保有足夠的輸入框
+    while (allInputs.length < chars.length) {
+        addPage();
+        const newPage = pageCount;
+        const rows = getRows(newPage);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${newPage}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
             }
-
-            // 將新文字插入到當前位置
-            const insertedText = newText + subsequentText;
-
-            // 重新分配文字到輸入框
-            let index = currentIndex;
-            for (let char of insertedText) {
-                if (index >= allInputs.length) {
-                    addPage();
-                    const newInputs = getAllInputsInOrder();
-                    allInputs.push(...newInputs.slice(allInputs.length));
-                }
-                allInputs[index].value = char;
-                index++;
-            }
-
-            // 將焦點移到插入文字後的下一個輸入框
-            const nextIndex = currentIndex + newText.length;
-            if (nextIndex < allInputs.length) {
-                allInputs[nextIndex].focus();
-            } else if (nextIndex === allInputs.length) {
-                addPage();
-                const newInputs = getAllInputsInOrder();
-                newInputs[nextIndex].focus();
-            }
-
-            updateWordCount();
         }
+    }
+
+    // 從插入點開始重新分配文字
+    for (let i = index; i < chars.length; i++) {
+        if (i < allInputs.length) {
+            allInputs[i].value = chars[i];
+        } else {
+            break; // 防止溢出
+        }
+    }
+
+    // 將焦點移到插入文字後的下一個輸入框
+    const nextIndex = index + newChars.length;
+    if (nextIndex < allInputs.length) {
+        allInputs[nextIndex].focus();
+    } else {
+        allInputs[allInputs.length - 1].focus(); // 若到末尾，聚焦最後一個
+    }
+
+    // 更新字數
+    updateWordCount();
+}
 
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
