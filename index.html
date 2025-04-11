@@ -260,79 +260,59 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #333;
-            color: white;
+            background-color: #f0f0f0;
             padding: 10px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-around;
             z-index: 1000;
-            transition: transform 0.3s ease;
         }
-        #music-panel.hidden {
-            transform: translateY(100%);
-        }
-        #music-controls {
-            display: flex;
-            align-items: center;
+        #music-panel button, #music-panel select {
+            margin: 0 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
         #play-pause-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        #progress-container {
-            flex-grow: 1;
-            margin: 0 10px;
-        }
-        #progress-bar {
-            width: 100%;
-            height: 5px;
-            background-color: #555;
-            position: relative;
-            cursor: pointer;
-        }
-        #progress {
-            height: 100%;
             background-color: #4CAF50;
-            width: 0;
+            color: white;
+            font-size: 16px;
+        }
+        #play-pause-btn:hover {
+            background-color: #45a049;
+        }
+        #music-progress-bar {
+            width: 50%;
+            height: 10px;
+            cursor: pointer;
         }
         #music-select {
-            background-color: #444;
-            color: white;
-            border: none;
             padding: 5px;
-            border-radius: 5px;
-            cursor: pointer;
         }
-        #status {
-            margin-left: 10px;
-            font-size: 14px;
-        }
-        #hide-show-btn {
-            background: none;
-            border: none;
+        #hide-btn {
+            background-color: #dc3545;
             color: white;
-            font-size: 18px;
-            cursor: pointer;
         }
-        #youtube-player {
-            display: none;
+        #hide-btn:hover {
+            background-color: #c82333;
+        }
+        #ad-status {
+            font-size: 12px;
+            color: #666;
         }
         @media (max-width: 600px) {
             #music-panel {
+                flex-wrap: wrap;
                 padding: 5px;
             }
-            #play-pause-btn {
-                font-size: 20px;
+            #music-progress-bar {
+                width: 100%;
+                margin: 5px 0;
             }
-            #music-select {
-                font-size: 12px;
-            }
-            #status {
+            #music-panel button, #music-panel select {
+                margin: 2px;
                 font-size: 12px;
             }
         }
@@ -351,6 +331,7 @@
             <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
             <button id="eye-protection" class="action-btn">護眼模式</button>
             <button id="ask-chen" class="ask-btn">👨‍🏫向陳SIR發問</button>
+            <button id="show-music" class="action-btn">顯示音樂面板</button>
         </div>
         <div style="text-align: center; margin-top: 10px;">
             <input type="text" id="title-input" placeholder="請輸入題目">
@@ -380,33 +361,29 @@
             </select>
         </div>
         <label for="tone">語氣：</label>
-        <selectocs: pointer;
         <select id="tone">
             <option value="serious">嚴肅正經</option>
             <option value="chen">陳SIR語氣</option>
         </select>
-        <div id="outline-area"></div>
+        <div id="outline-area">
+            <!-- Outline tables will be generated here -->
+        </div>
         <textarea id="question" rows="4" placeholder="請在此輸入您的問題..."></textarea>
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
+    <!-- 音樂面板 -->
     <div id="music-panel">
-        <div id="music-controls">
-            <button id="play-pause-btn">▶️</button>
-            <div id="progress-container">
-                <div id="progress-bar">
-                    <div id="progress"></div>
-                </div>
-            </div>
-            <select id="music-select">
-                <option value="b5d5OmmUlPc">宮崎駿</option>
-                <option value="2gIAmAZhWzM">輕鬆悠閑</option>
-            </select>
-            <span id="status"></span>
-        </div>
-        <button id="hide-show-btn">🔽</button>
+        <button id="play-pause-btn">▶️</button>
+        <progress id="music-progress-bar" value="0" max="100"></progress>
+        <select id="music-select">
+            <option value="miyazaki">宮崎駿</option>
+            <option value="relax">輕鬆悠閑</option>
+        </select>
+        <button id="hide-btn">隱藏</button>
+        <div id="ad-status"></div>
     </div>
-    <div id="youtube-player"></div>
+    <div id="player"></div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -1075,24 +1052,26 @@
             });
         });
 
-        // 音樂面板功能
+        // 音樂播放器邏輯
         let player;
-        let isPlaying = false;
-        let isMuted = false;
-        let progressInterval;
-        const playPauseBtn = document.getElementById('play-pause-btn');
-        const progressBar = document.getElementById('progress-bar');
-        const progress = document.getElementById('progress');
-        const musicSelect = document.getElementById('music-select');
-        const status = document.getElementById('status');
-        const hideShowBtn = document.getElementById('hide-show-btn');
-        const musicPanel = document.getElementById('music-panel');
+        let isAdPlaying = false;
+        let lastTime = 0;
 
         function onYouTubeIframeAPIReady() {
-            player = new YT.Player('youtube-player', {
-                height: '0',
+            player = new YT.Player('player', {
+                height: '0', // 隱藏視頻
                 width: '0',
-                videoId: musicSelect.value,
+                videoId: 'b5d5OmmUlPc', // 默認宮崎駿
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'iv_load_policy': 3,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0
+                },
                 events: {
                     'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange
@@ -1101,92 +1080,77 @@
         }
 
         function onPlayerReady(event) {
-            // 播放器準備好後的回調
+            player.setVolume(50); // 初始音量
+            setInterval(updateProgressBar, 1000); // 每秒更新進度條
         }
 
         function onPlayerStateChange(event) {
+            const playPauseBtn = document.getElementById('play-pause-btn');
             if (event.data === YT.PlayerState.PLAYING) {
-                isPlaying = true;
                 playPauseBtn.textContent = '⏸️';
-                startProgress();
-                checkForAd();
-            } else if (event.data === YT.PlayerState.PAUSED) {
-                isPlaying = false;
+            } else {
                 playPauseBtn.textContent = '▶️';
-                stopProgress();
-            } else if (event.data === YT.PlayerState.ENDED) {
-                isPlaying = false;
-                playPauseBtn.textContent = '▶️';
-                progress.style.width = '0%';
             }
         }
 
-        playPauseBtn.addEventListener('click', function() {
-            if (isPlaying) {
+        function updateProgressBar() {
+            if (player && player.getCurrentTime) {
+                const currentTime = player.getCurrentTime();
+                const duration = player.getDuration();
+                if (duration > 0) {
+                    const progress = (currentTime / duration) * 100;
+                    document.getElementById('music-progress-bar').value = progress;
+                }
+                // 檢測廣告
+                if (currentTime < lastTime - 5 && lastTime > 5) { // 時間跳回超過5秒，假設為廣告
+                    isAdPlaying = true;
+                    player.setVolume(0);
+                    document.getElementById('ad-status').textContent = '廣告播放中';
+                } else if (isAdPlaying && currentTime > lastTime) { // 廣告結束
+                    isAdPlaying = false;
+                    player.setVolume(50);
+                    document.getElementById('ad-status').textContent = '';
+                }
+                lastTime = currentTime;
+            }
+        }
+
+        document.getElementById('play-pause-btn').addEventListener('click', function() {
+            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
                 player.pauseVideo();
             } else {
                 player.playVideo();
             }
         });
 
-        function startProgress() {
-            stopProgress(); // 確保清除之前的計時器
-            progressInterval = setInterval(function() {
-                const currentTime = player.getCurrentTime();
-                const duration = player.getDuration();
-                const percentage = (currentTime / duration) * 100;
-                progress.style.width = percentage + '%';
-            }, 1000);
-        }
-
-        function stopProgress() {
-            if (progressInterval) {
-                clearInterval(progressInterval);
-            }
-        }
-
-        progressBar.addEventListener('click', function(e) {
+        document.getElementById('music-progress-bar').addEventListener('click', function(e) {
+            const progressBar = this;
             const rect = progressBar.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const width = rect.width;
-            const percentage = (clickX / width) * 100;
-            const seekTime = (percentage / 100) * player.getDuration();
+            const percentage = clickX / width;
+            const duration = player.getDuration();
+            const seekTime = percentage * duration;
             player.seekTo(seekTime, true);
         });
 
-        musicSelect.addEventListener('change', function() {
-            const videoId = this.value;
+        document.getElementById('music-select').addEventListener('change', function() {
+            const selected = this.value;
+            let videoId;
+            if (selected === 'miyazaki') {
+                videoId = 'b5d5OmmUlPc'; // 宮崎駿
+            } else if (selected === 'relax') {
+                videoId = '2gIAmAZhWzM'; // 輕鬆悠閑
+            }
             player.loadVideoById(videoId);
-            player.playVideo();
         });
 
-        function checkForAd() {
-            const iframe = document.getElementById('youtube-player');
-            const playerState = player.getPlayerState();
-            // YouTube API 未提供直接的 getAdState 方法，需間接判斷
-            if (playerState === YT.PlayerState.PLAYING && player.getCurrentTime() < 5) {
-                // 假設前5秒可能是廣告
-                status.textContent = '廣告播放中';
-                player.mute();
-                isMuted = true;
-                setTimeout(checkForAd, 1000);
-            } else {
-                status.textContent = '';
-                if (isMuted) {
-                    player.unMute();
-                    isMuted = false;
-                }
-            }
-        }
+        document.getElementById('hide-btn').addEventListener('click', function() {
+            document.getElementById('music-panel').style.display = 'none';
+        });
 
-        hideShowBtn.addEventListener('click', function() {
-            if (musicPanel.classList.contains('hidden')) {
-                musicPanel.classList.remove('hidden');
-                hideShowBtn.textContent = '🔽';
-            } else {
-                musicPanel.classList.add('hidden');
-                hideShowBtn.textContent = '🔼';
-            }
+        document.getElementById('show-music').addEventListener('click', function() {
+            document.getElementById('music-panel').style.display = 'flex';
         });
     </script>
 </body>
