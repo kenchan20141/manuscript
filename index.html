@@ -573,74 +573,141 @@
         }
 
         function addPage() {
-            pageCount++;
-            const rows = getRows(pageCount);
-            const cols = getCols();
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'page';
-            if (isEyeProtection) pageDiv.classList.add('eye-protection');
-            pageDiv.dataset.page = pageCount;
-            const title = document.createElement('div');
-            title.className = 'title';
-            const titleInput = document.getElementById('title-input');
-            title.textContent = titleInput.value.trim() || '中文寫作';
-            pageDiv.appendChild(title);
-            const table = document.createElement('table');
-            table.className = 'grid';
-            for (let row = 1; row <= rows; row++) {
-                const tr = document.createElement('tr');
-                for (let col = 1; col <= cols; col++) {
-                    const td = document.createElement('td');
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.dataset.page = pageCount;
-                    input.dataset.row = row;
-                    input.dataset.col = col;
-                    input.addEventListener('compositionstart', function() { this.isComposing = true; });
-                    input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
-                    input.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
-                    input.addEventListener('keydown', function(e) {
-                        if (e.key === 'Backspace' && this.value === '') {
-                            moveToPrevInput(this);
-                            updateWordCount();
-                        }
-                    });
-                    input.addEventListener('paste', function(e) {
-                        e.preventDefault();
-                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                        this.value = pastedText;
-                        handleInput(this);
-                    });
-                    td.appendChild(input);
-                    tr.appendChild(td);
+    pageCount++;
+    const rows = getRows(pageCount);
+    const cols = getCols();
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'page';
+    if (isEyeProtection) pageDiv.classList.add('eye-protection');
+    pageDiv.dataset.page = pageCount;
+    const title = document.createElement('div');
+    title.className = 'title';
+    const titleInput = document.getElementById('title-input');
+    title.textContent = titleInput.value.trim() || '中文寫作';
+    pageDiv.appendChild(title);
+    const table = document.createElement('table');
+    table.className = 'grid';
+    for (let row = 1; row <= rows; row++) {
+        const tr = document.createElement('tr');
+        for (let col = 1; col <= cols; col++) {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.page = pageCount;
+            input.dataset.row = row;
+            input.dataset.col = col;
+            input.addEventListener('compositionstart', function() { this.isComposing = true; });
+            input.addEventListener('compositionend', function() { 
+                this.isComposing = false; 
+                this.dataset.original = this.value; // 記錄原始文字
+                handleInput(this); 
+            });
+            input.addEventListener('input', function() { 
+                if (!this.isComposing) {
+                    this.dataset.original = this.value; // 記錄原始文字
+                    handleInput(this); 
                 }
-                table.appendChild(tr);
-            }
-            pageDiv.appendChild(table);
-            manuscript.appendChild(pageDiv);
-            updateWordCount();
-        }
-
-        function handleInput(currentInput) {
-            const value = currentInput.value;
-            if (value.length > 0) {
-                const chars = value.split('');
-                let input = currentInput;
-                for (let char of chars) {
-                    input.value = char;
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '') {
+                    moveToPrevInput(this);
                     updateWordCount();
-                    let nextInput = getNextInput(input);
-                    if (!nextInput) {
-                        addPage();
-                        nextInput = getNextInput(input);
-                    }
-                    input = nextInput;
                 }
-                if (input) input.focus();
-            } else {
-                updateWordCount();
+            });
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                this.value = pastedText;
+                this.dataset.original = this.value;
+                handleInput(this);
+            });
+            td.appendChild(input);
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+    pageDiv.appendChild(table);
+    manuscript.appendChild(pageDiv);
+    updateWordCount();
+}
+      function handleInput(currentInput) {
+    // 收集所有輸入框
+    const allInputs = [];
+    for (let page = 1; page <= pageCount; page++) {
+        const rows = getRows(page);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
             }
         }
+    }
+
+    // 獲取當前輸入框的索引
+    const index = allInputs.indexOf(currentInput);
+    if (index === -1) return;
+
+    // 獲取新輸入的文字和光標位置
+    const newText = currentInput.value;
+    if (newText.length === 0) return;
+    const cursorPosition = currentInput.selectionStart || 0;
+    const originalChar = allInputs[index].dataset.original || ''; // 保存原始文字
+
+    // 清空當前輸入框並準備插入
+    currentInput.value = '';
+    currentInput.dataset.original = ''; // 清空原始文字記錄
+
+    // 收集當前所有文字
+    const chars = allInputs.map(input => input.value || '');
+
+    // 根據光標位置分割原始文字
+    const beforeCursor = originalChar.slice(0, cursorPosition);
+    const afterCursor = originalChar.slice(cursorPosition);
+    const newChars = newText.split('');
+
+    // 在當前索引處插入新文字，並處理原始文字的分割
+    if (beforeCursor) chars[index] = beforeCursor; // 若光標前有文字，保留
+    else chars[index] = ''; // 若無，置空
+    const insertArray = [...newChars, afterCursor].filter(Boolean); // 新文字 + 光標後文字
+    chars.splice(index + (beforeCursor ? 1 : 0), afterCursor ? 1 : 0, ...insertArray);
+
+    // 確保有足夠的輸入框
+    while (allInputs.length < chars.length) {
+        addPage();
+        const newPage = pageCount;
+        const rows = getRows(newPage);
+        const cols = getCols();
+        for (let row = 1; row <= rows; row++) {
+            for (let col = 1; col <= cols; col++) {
+                const input = document.querySelector(
+                    `input[data-page="${newPage}"][data-row="${row}"][data-col="${col}"]`
+                );
+                if (input) allInputs.push(input);
+            }
+        }
+    }
+
+    // 重新分配文字
+    for (let i = 0; i < allInputs.length; i++) {
+        allInputs[i].value = i < chars.length ? chars[i] : '';
+    }
+
+    // 將焦點移到插入最後一個新文字後的下一個輸入框
+    const nextIndex = index + (beforeCursor ? 1 : 0) + newChars.length;
+    if (nextIndex < allInputs.length) {
+        allInputs[nextIndex].focus();
+        allInputs[nextIndex].selectionStart = 0; // 光標置於文字前
+        allInputs[nextIndex].selectionEnd = 0;
+    } else {
+        allInputs[allInputs.length - 1].focus();
+    }
+
+    // 更新字數
+    updateWordCount();
+}
 
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
