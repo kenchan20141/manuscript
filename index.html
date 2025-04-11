@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文寫作</title>
+    <!-- 添加Font Awesome CDN 用於圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             background-color: #f0f0f0;
@@ -254,8 +256,8 @@
             padding: 5px;
             margin-top: 10px;
         }
-        /* 音樂播放器樣式 */
-        #music-player {
+        /* 音樂面板樣式 */
+        #music-panel {
             position: fixed;
             bottom: 0;
             left: 0;
@@ -267,23 +269,53 @@
             justify-content: space-around;
             align-items: center;
             z-index: 1000;
+            transition: transform 0.3s ease;
         }
-        #music-player select, #music-player button, #music-player input {
-            margin: 0 5px;
+        #music-panel.hidden {
+            transform: translateY(100%);
         }
-        #music-progress-bar {
-            width: 50%;
+        #music-controls {
+            display: flex;
+            align-items: center;
         }
-        #hide-btn {
+        #play-pause-btn {
             background: none;
             border: none;
             color: white;
             font-size: 20px;
             cursor: pointer;
         }
+        #progress-bar {
+            width: 200px;
+            margin: 0 10px;
+        }
+        #current-time, #duration {
+            font-size: 14px;
+        }
+        #music-select, #play-mode {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 5px;
+            margin: 0 10px;
+        }
+        #hide-panel-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        /* 手機適配 */
         @media (max-width: 600px) {
-            #music-progress-bar {
-                width: 30%;
+            #music-panel {
+                padding: 5px;
+            }
+            #progress-bar {
+                width: 100px;
+            }
+            #music-select, #play-mode {
+                font-size: 12px;
             }
         }
     </style>
@@ -340,20 +372,23 @@
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
-    <!-- 音樂播放器 -->
-    <div id="music-player">
-        <select id="music-select">
-            <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
-            <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
-        </select>
-        <button id="play-btn">▶️</button>
-        <button id="pause-btn">⏸️</button>
-        <input type="range" id="music-progress-bar" min="0" max="100" value="0">
-        <select id="loop-select">
-            <option value="loop" selected>單曲循環</option>
-            <option value="next">自動播放下首</option>
-        </select>
-        <button id="hide-btn">🔽</button>
+    <!-- 音樂面板HTML -->
+    <div id="music-panel">
+        <div id="music-controls">
+            <button id="play-pause-btn"><i class="fas fa-play"></i></button>
+            <input type="range" id="progress-bar" value="0" min="0" max="100">
+            <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+            <select id="music-select">
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
+            </select>
+            <select id="play-mode">
+                <option value="loop">單曲循環播放</option>
+                <option value="next">自動播放下首樂曲</option>
+            </select>
+            <button id="hide-panel-btn"><i class="fas fa-chevron-down"></i></button>
+        </div>
+        <audio id="audio-player" loop></audio>
     </div>
 
     <script>
@@ -794,7 +829,9 @@
 
         function addArgumentStructureSegment() {
             const table = document.getElementById('argumentOutlineTable');
-            const rows = table.rows;
+            const rows = tableании
+
+.rows;
             let structureSegmentCount = 0;
             for (let i = 1; i < rows.length - 1; i++) {
                 if (rows[i].cells[0].innerText.startsWith('結構段')) {
@@ -858,7 +895,7 @@
             alert('大綱已儲存');
         }
 
-        bonusfunction clearArgumentOutline() {
+        function clearArgumentOutline() {
             if (confirm('確定要清空大綱嗎？')) {
                 const table = document.getElementById('argumentOutlineTable');
                 const rows = table.rows;
@@ -1023,61 +1060,87 @@
             });
         });
 
-        // 音樂播放器邏輯
-        const audio = new Audio();
+        // 音樂面板JavaScript
+        const audioPlayer = document.getElementById('audio-player');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const currentTimeSpan = document.getElementById('current-time');
+        const durationSpan = document.getElementById('duration');
         const musicSelect = document.getElementById('music-select');
-        const playBtn = document.getElementById('play-btn');
-        const pauseBtn = document.getElementById('pause-btn');
-        const musicProgressBar = document.getElementById('music-progress-bar');
-        const loopSelect = document.getElementById('loop-select');
-        const hideBtn = document.getElementById('hide-btn');
-        const musicPlayer = document.getElementById('music-player');
+        const playModeSelect = document.getElementById('play-mode');
+        const hidePanelBtn = document.getElementById('hide-panel-btn');
+        const musicPanel = document.getElementById('music-panel');
+
+        playPauseBtn.addEventListener('click', function() {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            } else {
+                audioPlayer.pause();
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            }
+        });
+
+        audioPlayer.addEventListener('timeupdate', function() {
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+            if (!isNaN(duration)) {
+                progressBar.value = (currentTime / duration) * 100;
+                currentTimeSpan.textContent = formatTime(currentTime);
+                durationSpan.textContent = formatTime(duration);
+            }
+        });
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        progressBar.addEventListener('input', function() {
+            const duration = audioPlayer.duration;
+            if (!isNaN(duration)) {
+                audioPlayer.currentTime = (progressBar.value / 100) * duration;
+            }
+        });
 
         musicSelect.addEventListener('change', function() {
-            audio.src = this.value;
-            audio.play();
+            audioPlayer.src = musicSelect.value;
+            audioPlayer.play();
+            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
         });
 
-        playBtn.addEventListener('click', function() {
-            audio.play();
-        });
-
-        pauseBtn.addEventListener('click', function() {
-            audio.pause();
-        });
-
-        audio.addEventListener('timeupdate', function() {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            musicProgressBar.value = progress;
-        });
-
-        musicProgressBar.addEventListener('input', function() {
-            const time = (this.value / 100) * audio.duration;
-            audio.currentTime = time;
-        });
-
-        audio.addEventListener('ended', function() {
-            const loopOption = loopSelect.value;
-            if (loopOption === 'loop') {
-                audio.play();
+        playModeSelect.addEventListener('change', function() {
+            if (playModeSelect.value === 'loop') {
+                audioPlayer.loop = true;
             } else {
-                const select = musicSelect;
-                const currentIndex = select.selectedIndex;
-                const nextIndex = (currentIndex + 1) % select.options.length;
-                select.selectedIndex = nextIndex;
-                audio.src = select.value;
-                audio.play();
+                audioPlayer.loop = false;
             }
         });
 
-        hideBtn.addEventListener('click', function() {
-            if (musicPlayer.style.display === 'none') {
-                musicPlayer.style.display = 'flex';
-                this.textContent = '🔽';
-            } else {
-                musicPlayer.style.display = 'none';
-                this.textContent = '🔼';
+        audioPlayer.addEventListener('ended', function() {
+            if (playModeSelect.value === 'next') {
+                const currentIndex = musicSelect.selectedIndex;
+                const nextIndex = (currentIndex + 1) % musicSelect.options.length;
+                musicSelect.selectedIndex = nextIndex;
+                audioPlayer.src = musicSelect.value;
+                audioPlayer.play();
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
             }
+        });
+
+        hidePanelBtn.addEventListener('click', function() {
+            musicPanel.classList.toggle('hidden');
+            if (musicPanel.classList.contains('hidden')) {
+                hidePanelBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+            } else {
+                hidePanelBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+            }
+        });
+
+        window.addEventListener('load', function() {
+            audioPlayer.src = musicSelect.value;
+            audioPlayer.loop = playModeSelect.value === 'loop';
         });
     </script>
 </body>
