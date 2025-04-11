@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -278,13 +276,16 @@
         #music-controls {
             display: flex;
             align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
         }
-        #play-pause-btn {
+        #play-btn, #pause-btn {
             background: none;
             border: none;
             color: white;
             font-size: 24px;
             cursor: pointer;
+            margin: 0 10px;
         }
         #progress-bar {
             width: 200px;
@@ -297,6 +298,10 @@
             color: white;
             border: none;
             border-radius: 3px;
+        }
+        #ad-status {
+            margin-left: 10px;
+            font-size: 14px;
         }
         #hide-panel-btn {
             background: none;
@@ -312,7 +317,7 @@
             #progress-bar {
                 width: 100%;
             }
-            #music-select, #play-pause-btn, #hide-panel-btn {
+            #music-select, #play-btn, #pause-btn, #hide-panel-btn {
                 margin: 5px 0;
             }
         }
@@ -341,8 +346,10 @@
     <div id="youtube-player"></div>
     <div id="music-panel">
         <div id="music-controls">
-            <button id="play-pause-btn">▶️</button>
             <input type="range" id="progress-bar" min="0" max="100" value="0">
+            <button id="play-btn">▶️</button>
+            <button id="pause-btn" style="display: none;">⏸️</button>
+            <span id="ad-status" style="display: none;">廣告播放中</span>
             <select id="music-select">
                 <option value="miyazaki">宮崎駿</option>
                 <option value="relaxing">輕鬆悠閑</option>
@@ -457,7 +464,7 @@
                             moveToPrevInput(this);
                             updateWordCount();
                         }
-                    Mos});
+                    });
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
@@ -1054,6 +1061,9 @@
 
         // Music Panel JavaScript
         let player;
+        let lastTime = 0;
+        let isAdPlaying = false;
+
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtube-player', {
                 height: '0',
@@ -1076,15 +1086,32 @@
         }
 
         function onPlayerReady(event) {
-            // Player is ready
+            document.getElementById('play-btn').style.display = 'inline';
+            document.getElementById('pause-btn').style.display = 'none';
+            document.getElementById('ad-status').style.display = 'none';
         }
 
         function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                document.getElementById('play-pause-btn').textContent = '⏸️';
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const adStatus = document.getElementById('ad-status');
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'inline';
                 startProgressUpdate();
-            } else {
-                document.getElementById('play-pause-btn').textContent = '▶️';
+                checkAdStatus();
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                playBtn.style.display = 'inline';
+                pauseBtn.style.display = 'none';
+                adStatus.style.display = 'none';
+                isAdPlaying = false;
+                stopProgressUpdate();
+            } else if (event.data === YT.PlayerState.ENDED) {
+                playBtn.style.display = 'inline';
+                pauseBtn.style.display = 'none';
+                adStatus.style.display = 'none';
+                isAdPlaying = false;
                 stopProgressUpdate();
             }
         }
@@ -1097,27 +1124,54 @@
                 if (duration > 0) {
                     const progress = (currentTime / duration) * 100;
                     document.getElementById('progress-bar').value = progress;
+                    checkAdStatus(currentTime);
                 }
             }
         }
 
         function startProgressUpdate() {
-            progressInterval = setInterval(updateProgress, 1000);
+            if (!progressInterval) {
+                progressInterval = setInterval(updateProgress, 1000);
+            }
         }
 
         function stopProgressUpdate() {
-            clearInterval(progressInterval);
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
         }
 
-        document.getElementById('play-pause-btn').addEventListener('click', function() {
-            if (player && player.getPlayerState) {
-                if (player.getPlayerState() == YT.PlayerState.PLAYING) {
-                    player.pauseVideo();
-                } else {
-                    player.playVideo();
+        function checkAdStatus(currentTime) {
+            const adStatus = document.getElementById('ad-status');
+            if (!currentTime) currentTime = player.getCurrentTime();
+
+            // 如果時間突然跳回或大幅前進，推測為廣告
+            if (lastTime > 0 && (currentTime < lastTime - 1 || currentTime > lastTime + 2)) {
+                if (!isAdPlaying) {
+                    isAdPlaying = true;
+                    player.mute();
+                    adStatus.style.display = 'inline';
                 }
+            } else if (isAdPlaying && Math.abs(currentTime - lastTime) < 1) {
+                isAdPlaying = false;
+                player.unMute();
+                adStatus.style.display = 'none';
+            }
+            lastTime = currentTime;
+        }
+
+        document.getElementById('play-btn').addEventListener('click', function() {
+            if (player && player.playVideo) {
+                player.playVideo();
             } else {
                 alert('播放器尚未準備好，請稍候');
+            }
+        });
+
+        document.getElementById('pause-btn').addEventListener('click', function() {
+            if (player && player.pauseVideo) {
+                player.pauseVideo();
             }
         });
 
@@ -1127,6 +1181,7 @@
                 const duration = player.getDuration();
                 const seekTo = (progress / 100) * duration;
                 player.seekTo(seekTo, true);
+                lastTime = seekTo; // 更新lastTime以避免誤判廣告
             }
         });
 
@@ -1139,11 +1194,14 @@
                 videoId = '2gIAmAZhWzM';
             }
             player.loadVideoById(videoId);
+            lastTime = 0; // 重置時間以檢測新視頻的廣告
+            isAdPlaying = false;
         });
 
         document.getElementById('hide-panel-btn').addEventListener('click', function() {
             document.getElementById('music-panel').style.display = 'none';
             document.getElementById('show-music-panel').style.display = 'block';
+            stopProgressUpdate();
         });
 
         document.getElementById('show-music-panel').addEventListener('click', function() {
