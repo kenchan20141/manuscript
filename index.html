@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文寫作</title>
-    <!-- 引入 Font Awesome 圖示庫 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             background-color: #f0f0f0;
@@ -125,7 +123,7 @@
         #eye-protection {
             background-color: #FFD700;
             color: #333;
-            transition: none; /* 移除過渡效果，確保穩定 */
+            transition: none;
         }
         #ask-panel {
             position: fixed;
@@ -164,28 +162,28 @@
             cursor: pointer;
         }
         .add-segment-btn {
-            background-color: #FFA500 !important; /* 橙色 */
+            background-color: #FFA500 !important;
             color: white;
         }
         .add-segment-btn:hover {
             background-color: #e69500 !important;
         }
         .save-btn {
-            background-color: #800080 !important; /* 紫色 */
+            background-color: #800080 !important;
             color: white;
         }
         .save-btn:hover {
             background-color: #660066 !important;
         }
         .clear-btn {
-            background-color: #A52A2A !important; /* 棕色 */
+            background-color: #A52A2A !important;
             color: white;
         }
         .clear-btn:hover {
             background-color: #8B2323 !important;
         }
         #submit-question {
-            background-color: #007bff !important; /* 藍色 */
+            background-color: #007bff !important;
             color: white;
             width: 100%;
             padding: 10px;
@@ -204,7 +202,7 @@
             width: 20px;
             height: 20px;
             font-size: 16px;
-            background-color: #dc3545 !important; /* 紅色 */
+            background-color: #dc3545 !important;
             color: white;
             border: none;
             border-radius: 50%;
@@ -256,74 +254,69 @@
             padding: 5px;
             margin-top: 10px;
         }
-        /* 音樂面板樣式 */
+        #youtube-player {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
         #music-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #f0f0f0;
+            background-color: #333;
+            color: white;
             padding: 10px;
-            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-            transition: transform 0.3s ease-in-out;
-        }
-        #music-panel.hidden {
-            transform: translateY(100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
         }
         #music-controls {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            max-width: 600px;
-            margin: 0 auto;
         }
-        #music-controls button {
-            background-color: transparent;
+        #play-pause-btn {
+            background: none;
             border: none;
-            cursor: pointer;
+            color: white;
             font-size: 24px;
-            padding: 5px;
+            cursor: pointer;
         }
         #progress-bar {
-            width: 50%;
-            cursor: pointer;
+            width: 200px;
+            margin: 0 10px;
         }
         #music-select {
-            width: 100px;
+            margin: 0 10px;
             padding: 5px;
-        }
-        #music-player {
-            display: none;
-        }
-        #toggle-panel-btn {
-            position: absolute;
-            top: -30px;
-            right: 10px;
-            background-color: #4CAF50;
+            background-color: #444;
             color: white;
             border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
+            border-radius: 3px;
+        }
+        #hide-panel-btn {
+            background: none;
+            border: none;
+            color: white;
             cursor: pointer;
+            font-size: 14px;
         }
         @media (max-width: 600px) {
             #music-controls {
-                flex-wrap: wrap;
+                flex-direction: column;
             }
             #progress-bar {
                 width: 100%;
-                margin: 10px 0;
             }
-            #music-select {
-                width: 80px;
+            #music-select, #play-pause-btn, #hide-panel-btn {
+                margin: 5px 0;
             }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- 引入 YouTube IFrame Player API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
@@ -343,6 +336,19 @@
     </div>
     <div id="manuscript"></div>
     <div id="word-count">字數：0</div>
+    <div id="youtube-player"></div>
+    <div id="music-panel">
+        <div id="music-controls">
+            <button id="play-pause-btn">▶️</button>
+            <input type="range" id="progress-bar" min="0" max="100" value="0">
+            <select id="music-select">
+                <option value="miyazaki">宮崎駿</option>
+                <option value="relaxing">輕鬆悠閑</option>
+            </select>
+            <button id="hide-panel-btn">隱藏</button>
+        </div>
+    </div>
+    <button id="show-music-panel" style="position: fixed; bottom: 10px; right: 10px; display: none;">🎵</button>
     <div id="progress-overlay">
         <div id="progress-box">
             <p>正在導出 PDF...</p>
@@ -376,22 +382,7 @@
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
-    <!-- 音樂面板 -->
-    <div id="music-panel">
-        <button id="toggle-panel-btn">↓</button>
-        <div id="music-controls">
-            <button id="play-btn"><i class="fas fa-play"></i></button>
-            <button id="pause-btn"><i class="fas fa-pause"></i></button>
-            <input type="range" id="progress-bar" value="0" min="0" max="100">
-            <select id="music-select">
-                <option value="miyazaki">宮崎駿</option>
-                <option value="relax">放鬆</option>
-            </select>
-        </div>
-        <div id="music-player">
-            <div id="youtube-player"></div>
-        </div>
-    </div>
+
     <script>
         const manuscript = document.getElementById('manuscript');
         const wordCountDiv = document.getElementById('word-count');
@@ -464,7 +455,7 @@
                             moveToPrevInput(this);
                             updateWordCount();
                         }
-                    });
+                    Mos});
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
@@ -1059,122 +1050,104 @@
             });
         });
 
-        // 音樂面板腳本
-        const musicPanel = document.getElementById('music-panel');
-        const playBtn = document.getElementById('play-btn');
-        const pauseBtn = document.getElementById('pause-btn');
-        const progressBar = document.getElementById('progress-bar');
-        const musicSelect = document.getElementById('music-select');
-        const togglePanelBtn = document.getElementById('toggle-panel-btn');
+        // Music Panel JavaScript
         let player;
-        let currentMusic = 'miyazaki';
-        let isPlaying = false;
-
-        // 音樂 ID
-        const musicIds = {
-            miyazaki: 'b5d5OmmUlPc',
-            relax: '2gIAmAZhWzM'
-        };
-
-        // 初始化 YouTube 播放器
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('youtube-player', {
                 height: '0',
                 width: '0',
-                videoId: musicIds[currentMusic],
+                videoId: 'b5d5OmmUlPc', // Default to 宮崎駿
                 playerVars: {
                     'autoplay': 0,
                     'controls': 0,
                     'showinfo': 0,
                     'rel': 0,
+                    'fs': 0,
                     'iv_load_policy': 3,
                     'modestbranding': 1
                 },
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onAdStart': skipAd
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
 
         function onPlayerReady(event) {
-            // 播放器準備好後可進行操作
+            // Player is ready
         }
 
         function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                isPlaying = true;
-                updateProgressBar();
-            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                isPlaying = false;
+            if (event.data == YT.PlayerState.PLAYING) {
+                document.getElementById('play-pause-btn').textContent = '⏸️';
+                startProgressUpdate();
+            } else {
+                document.getElementById('play-pause-btn').textContent = '▶️';
+                stopProgressUpdate();
             }
         }
 
-        // 自動跳過廣告（嘗試檢測並跳轉）
-        function skipAd() {
-            if (player && player.getAdState && player.getAdState() === 1) {
-                player.seekTo(player.getDuration()); // 嘗試跳到結束
-            }
-        }
-
-        // 播放音樂
-        function playMusic() {
-            if (player && currentMusic) {
-                player.loadVideoById(musicIds[currentMusic]);
-                player.playVideo();
-                isPlaying = true;
-            }
-        }
-
-        // 暫停音樂
-        function pauseMusic() {
-            if (player) {
-                player.pauseVideo();
-                isPlaying = false;
-            }
-        }
-
-        // 更新進度條
-        function updateProgressBar() {
-            if (isPlaying && player) {
-                const duration = player.getDuration();
+        let progressInterval;
+        function updateProgress() {
+            if (player && player.getCurrentTime) {
                 const currentTime = player.getCurrentTime();
-                progressBar.value = (currentTime / duration) * 100;
-                requestAnimationFrame(updateProgressBar);
+                const duration = player.getDuration();
+                if (duration > 0) {
+                    const progress = (currentTime / duration) * 100;
+                    document.getElementById('progress-bar').value = progress;
+                }
             }
         }
 
-        // 選擇音樂
-        musicSelect.addEventListener('change', function() {
-            currentMusic = this.value;
-            if (isPlaying) {
-                playMusic();
+        function startProgressUpdate() {
+            progressInterval = setInterval(updateProgress, 1000);
+        }
+
+        function stopProgressUpdate() {
+            clearInterval(progressInterval);
+        }
+
+        document.getElementById('play-pause-btn').addEventListener('click', function() {
+            if (player && player.getPlayerState) {
+                if (player.getPlayerState() == YT.PlayerState.PLAYING) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+            } else {
+                alert('播放器尚未準備好，請稍候');
             }
         });
 
-        // 播放按鈕
-        playBtn.addEventListener('click', playMusic);
-
-        // 暫停按鈕
-        pauseBtn.addEventListener('click', pauseMusic);
-
-        // 進度條拖動
-        progressBar.addEventListener('input', function() {
-            if (player) {
-                const seekToTime = (this.value / 100) * player.getDuration();
-                player.seekTo(seekToTime, true);
+        document.getElementById('progress-bar').addEventListener('input', function() {
+            if (player && player.getDuration) {
+                const progress = this.value;
+                const duration = player.getDuration();
+                const seekTo = (progress / 100) * duration;
+                player.seekTo(seekTo, true);
             }
         });
 
-        // 切換面板顯示/隱藏
-        togglePanelBtn.addEventListener('click', function() {
-            musicPanel.classList.toggle('hidden');
-            this.textContent = musicPanel.classList.contains('hidden') ? '↑' : '↓';
+        document.getElementById('music-select').addEventListener('change', function() {
+            const selected = this.value;
+            let videoId;
+            if (selected === 'miyazaki') {
+                videoId = 'b5d5OmmUlPc';
+            } else if (selected === 'relaxing') {
+                videoId = '2gIAmAZhWzM';
+            }
+            player.loadVideoById(videoId);
         });
 
-        // 初始化時隱藏面板
-        musicPanel.classList.add('hidden');
+        document.getElementById('hide-panel-btn').addEventListener('click', function() {
+            document.getElementById('music-panel').style.display = 'none';
+            document.getElementById('show-music-panel').style.display = 'block';
+        });
+
+        document.getElementById('show-music-panel').addEventListener('click', function() {
+            document.getElementById('music-panel').style.display = 'flex';
+            document.getElementById('show-music-panel').style.display = 'none';
+        });
     </script>
 </body>
 </html>
