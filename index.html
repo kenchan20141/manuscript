@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文寫作</title>
-    <!-- 添加Font Awesome CDN 用於圖示 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             background-color: #f0f0f0;
@@ -256,8 +254,8 @@
             padding: 5px;
             margin-top: 10px;
         }
-        /* 音樂面板樣式 */
-        #music-panel {
+        /* 音樂播放器樣式 */
+        #music-player {
             position: fixed;
             bottom: 0;
             left: 0;
@@ -266,55 +264,99 @@
             color: white;
             padding: 10px;
             display: flex;
-            justify-content: space-around;
             align-items: center;
-            z-index: 1000;
-            transition: transform 0.3s ease;
+            justify-content: space-between;
+            z-index: 1002;
+            box-sizing: border-box;
+            font-size: 14px;
         }
-        #music-panel.hidden {
-            transform: translateY(100%);
+        #music-player.hidden {
+            display: none;
         }
-        #music-controls {
+        #music-player .controls {
             display: flex;
             align-items: center;
+            flex-shrink: 0;
         }
-        #play-pause-btn {
+        #music-player .controls button {
             background: none;
             border: none;
             color: white;
             font-size: 20px;
             cursor: pointer;
+            margin-right: 10px;
         }
-        #progress-bar {
-            width: 200px;
-            margin: 0 10px;
-        }
-        #current-time, #duration {
-            font-size: 14px;
-        }
-        #music-select, #play-mode {
-            background-color: #444;
+        #music-player .controls select {
+            background: #444;
             color: white;
             border: none;
             padding: 5px;
-            margin: 0 10px;
+            border-radius: 3px;
+            max-width: 150px;
         }
-        #hide-panel-btn {
+        #music-player .progress {
+            flex: 1;
+            margin: 0 10px;
+            display: flex;
+            align-items: center;
+        }
+        #music-player .progress input[type="range"] {
+            width: 100%;
+        }
+        #music-player .volume {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        #music-player .volume input[type="range"] {
+            width: 80px;
+        }
+        #music-player .mode {
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+        #music-player .mode select {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        #music-player .hide-btn {
             background: none;
             border: none;
             color: white;
             font-size: 20px;
             cursor: pointer;
+            margin-left: 10px;
         }
-        /* 手機適配 */
+        #show-player {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1003;
+            display: none;
+            font-size: 16px;
+        }
         @media (max-width: 600px) {
-            #music-panel {
+            #music-player {
+                flex-wrap: wrap;
                 padding: 5px;
             }
-            #progress-bar {
-                width: 100px;
+            #music-player .controls select {
+                max-width: 100px;
+                font-size: 12px;
             }
-            #music-select, #play-mode {
+            #music-player .volume input[type="range"] {
+                width: 50px;
+            }
+            #music-player .mode select {
                 font-size: 12px;
             }
         }
@@ -372,24 +414,31 @@
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
-    <!-- 音樂面板HTML -->
-    <div id="music-panel">
-        <div id="music-controls">
-            <button id="play-pause-btn"><i class="fas fa-play"></i></button>
-            <input type="range" id="progress-bar" value="0" min="0" max="100">
-            <span id="current-time">0:00</span> / <span id="duration">0:00</span>
+    <div id="music-player">
+        <div class="controls">
+            <button id="play-pause">▶️</button>
             <select id="music-select">
+                <option value="">選擇音樂</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
             </select>
-            <select id="play-mode">
-                <option value="loop">單曲循環播放</option>
-                <option value="next">自動播放下首樂曲</option>
-            </select>
-            <button id="hide-panel-btn"><i class="fas fa-chevron-down"></i></button>
         </div>
-        <audio id="audio-player" loop></audio>
+        <div class="progress">
+            <input type="range" id="progress-bar" value="0" min="0" max="100">
+        </div>
+        <div class="volume">
+            <input type="range" id="volume-bar" value="50" min="0" max="100">
+        </div>
+        <div class="mode">
+            <select id="play-mode">
+                <option value="loop" selected>單曲循環</option>
+                <option value="next">自動播放下首</option>
+            </select>
+        </div>
+        <button class="hide-btn" id="hide-player">🔽</button>
     </div>
+    <button id="show-player">🎵</button>
+    <audio id="audio" preload="auto"></audio>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -405,6 +454,19 @@
         let currentApiKeyIndex = 0;
         const API_URL = "https://chatapi.akash.network/api/v1/chat/completions";
         const MODEL = "DeepSeek-R1";
+
+        const audio = document.getElementById('audio');
+        const playPauseBtn = document.getElementById('play-pause');
+        const musicSelect = document.getElementById('music-select');
+        const progressBarMusic = document.getElementById('progress-bar');
+        const volumeBar = document.getElementById('volume-bar');
+        const playMode = document.getElementById('play-mode');
+        const hidePlayerBtn = document.getElementById('hide-player');
+        const showPlayerBtn = document.getElementById('show-player');
+        const musicPlayer = document.getElementById('music-player');
+
+        let isPlaying = false;
+        let currentMusic = '';
 
         function getRows(page) {
             return page % 2 === 1 ? 15 : 20;
@@ -829,9 +891,7 @@
 
         function addArgumentStructureSegment() {
             const table = document.getElementById('argumentOutlineTable');
-            const rows = tableании
-
-.rows;
+            const rows = table.rows;
             let structureSegmentCount = 0;
             for (let i = 1; i < rows.length - 1; i++) {
                 if (rows[i].cells[0].innerText.startsWith('結構段')) {
@@ -1060,87 +1120,76 @@
             });
         });
 
-        // 音樂面板JavaScript
-        const audioPlayer = document.getElementById('audio-player');
-        const playPauseBtn = document.getElementById('play-pause-btn');
-        const progressBar = document.getElementById('progress-bar');
-        const currentTimeSpan = document.getElementById('current-time');
-        const durationSpan = document.getElementById('duration');
-        const musicSelect = document.getElementById('music-select');
-        const playModeSelect = document.getElementById('play-mode');
-        const hidePanelBtn = document.getElementById('hide-panel-btn');
-        const musicPanel = document.getElementById('music-panel');
+        // 音樂播放器功能
+        musicSelect.addEventListener('change', function() {
+            const selectedMusic = this.value;
+            if (selectedMusic) {
+                audio.src = selectedMusic;
+                audio.play();
+                isPlaying = true;
+                playPauseBtn.textContent = '⏸️';
+                currentMusic = selectedMusic;
+            }
+        });
 
         playPauseBtn.addEventListener('click', function() {
-            if (audioPlayer.paused) {
-                audioPlayer.play();
-                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            if (isPlaying) {
+                audio.pause();
+                playPauseBtn.textContent = '▶️';
             } else {
-                audioPlayer.pause();
-                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                if (currentMusic) {
+                    audio.play();
+                    playPauseBtn.textContent = '⏸️';
+                } else {
+                    alert('請先選擇音樂');
+                }
+            }
+            isPlaying = !isPlaying;
+        });
+
+        audio.addEventListener('timeupdate', function() {
+            if (!audio.duration) return;
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBarMusic.value = progress;
+        });
+
+        progressBarMusic.addEventListener('input', function() {
+            const time = (this.value / 100) * audio.duration;
+            audio.currentTime = time;
+        });
+
+        volumeBar.addEventListener('input', function() {
+            audio.volume = this.value / 100;
+        });
+
+        audio.addEventListener('ended', function() {
+            if (playMode.value === 'loop') {
+                audio.currentTime = 0;
+                audio.play();
+            } else if (playMode.value === 'next') {
+                const options = musicSelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === currentMusic) {
+                        const nextIndex = (i + 1) % options.length;
+                        if (nextIndex === 0) break; // 回到“選擇音樂”時停止
+                        currentMusic = options[nextIndex].value;
+                        musicSelect.value = currentMusic;
+                        audio.src = currentMusic;
+                        audio.play();
+                        break;
+                    }
+                }
             }
         });
 
-        audioPlayer.addEventListener('timeupdate', function() {
-            const currentTime = audioPlayer.currentTime;
-            const duration = audioPlayer.duration;
-            if (!isNaN(duration)) {
-                progressBar.value = (currentTime / duration) * 100;
-                currentTimeSpan.textContent = formatTime(currentTime);
-                durationSpan.textContent = formatTime(duration);
-            }
+        hidePlayerBtn.addEventListener('click', function() {
+            musicPlayer.classList.add('hidden');
+            showPlayerBtn.style.display = 'block';
         });
 
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-        }
-
-        progressBar.addEventListener('input', function() {
-            const duration = audioPlayer.duration;
-            if (!isNaN(duration)) {
-                audioPlayer.currentTime = (progressBar.value / 100) * duration;
-            }
-        });
-
-        musicSelect.addEventListener('change', function() {
-            audioPlayer.src = musicSelect.value;
-            audioPlayer.play();
-            playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        });
-
-        playModeSelect.addEventListener('change', function() {
-            if (playModeSelect.value === 'loop') {
-                audioPlayer.loop = true;
-            } else {
-                audioPlayer.loop = false;
-            }
-        });
-
-        audioPlayer.addEventListener('ended', function() {
-            if (playModeSelect.value === 'next') {
-                const currentIndex = musicSelect.selectedIndex;
-                const nextIndex = (currentIndex + 1) % musicSelect.options.length;
-                musicSelect.selectedIndex = nextIndex;
-                audioPlayer.src = musicSelect.value;
-                audioPlayer.play();
-                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            }
-        });
-
-        hidePanelBtn.addEventListener('click', function() {
-            musicPanel.classList.toggle('hidden');
-            if (musicPanel.classList.contains('hidden')) {
-                hidePanelBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
-            } else {
-                hidePanelBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
-            }
-        });
-
-        window.addEventListener('load', function() {
-            audioPlayer.src = musicSelect.value;
-            audioPlayer.loop = playModeSelect.value === 'loop';
+        showPlayerBtn.addEventListener('click', function() {
+            musicPlayer.classList.remove('hidden');
+            showPlayerBtn.style.display = 'none';
         });
     </script>
 </body>
