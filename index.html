@@ -1130,13 +1130,20 @@
 
         // 音樂播放器功能
         musicSelect.addEventListener('change', function() {
-            const selectedMusic = this.value;
-            if (selectedMusic) {
-                audio.src = selectedMusic;
-                audio.load();
-                currentMusic = selectedMusic;
-            }
+    const selectedMusic = this.value;
+    if (selectedMusic) {
+        audio.src = selectedMusic;
+        audio.load();
+        currentMusic = selectedMusic;
+        audio.play().then(() => {
+            isPlaying = true;
+            playPauseBtn.textContent = '⏸️';
+        }).catch(error => {
+            console.error('自動播放失敗:', error);
+            // alert('請手動點擊播放按鈕');
         });
+    }
+});
 
         audio.addEventListener('canplay', function() {
             if (isPlaying) {
