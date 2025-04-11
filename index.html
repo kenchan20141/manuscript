@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -10,7 +11,6 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
-            padding-bottom: 100px; /* 為面板預留空間 */
             overflow: auto;
         }
         #controls {
@@ -356,7 +356,7 @@
             left: 0;
             right: 0;
             height: 50px;
-            background-color: #444; /* 深灰色系，稍淺於音樂面板 */
+            background-color: #f0f0f0;
             padding: 5px;
             display: flex;
             justify-content: center;
@@ -370,21 +370,28 @@
             font-size: 12px;
             margin: 0 2px;
             border-radius: 4px;
-            border: none; /* 移除外框 */
+            border: 1px solid #ccc;
             cursor: pointer;
-            background: none; /* 移除背景 */
-            color: white; /* 文字顏色 */
         }
         #timer-panel select {
-            background-color: #555; /* 調整 select 背景 */
+            background-color: #f9f9f9;
         }
         #timer-panel button {
-            font-size: 20px; /* 放大圖示 */
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #timer-panel button:hover {
+            background-color: #45a049;
+        }
+        #timer-panel button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         #timer-display {
             font-size: 16px;
             font-weight: bold;
-            color: #fff; /* 文字顏色 */
+            color: #333;
             margin: 0 10px;
             font-family: 'Courier New', Courier, monospace;
         }
@@ -454,7 +461,7 @@
             <select id="music-select">
                 <option value="">選擇音樂</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
-                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戰乙女</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-deadly.mp3">五大罪</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-rapier.mp3">繼承劍的少女</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Ariadne-Battle.mp3">不屈意志之刃</option>
@@ -505,7 +512,8 @@
                 <option value="三線">三線</option>
             </select>
         </div>
-        <button id="toggle-timer" class="action-btn">▶️</button>
+        <button id="start-timer" class="action-btn">▶️</button>
+        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
         <button id="reset-timer" class="action-btn">🔄</button>
         <div id="timer-display">01:30:00</div>
         <div id="timer-message"></div>
@@ -1288,18 +1296,11 @@
             resetTimer();
         }
 
-        function toggleTimer() {
-            if (isTimerRunning) {
-                pauseTimer();
-            } else {
-                startTimer();
-            }
-        }
-
         function startTimer() {
             if (isTimerRunning) return;
             isTimerRunning = true;
-            document.getElementById('toggle-timer').textContent = '⏸️';
+            document.getElementById('start-timer').disabled = true;
+            document.getElementById('pause-timer').disabled = false;
             setPrompts();
             timerInterval = setInterval(updateTimer, 1000);
         }
@@ -1308,20 +1309,20 @@
             if (!isTimerRunning) return;
             isTimerRunning = false;
             clearInterval(timerInterval);
-            document.getElementById('toggle-timer').textContent = '▶️';
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
         }
 
         function resetTimer() {
-            if (confirm('確定要重置計時器嗎？')) {
-                clearInterval(timerInterval);
-                isTimerRunning = false;
-                remainingTime = totalTime;
-                document.getElementById('timer-display').textContent = formatTime(remainingTime);
-                document.getElementById('timer-message').textContent = '';
-                document.getElementById('toggle-timer').textContent = '▶️';
-                prompts = [];
-                promptIndex = 0;
-            }
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            remainingTime = totalTime;
+            document.getElementById('timer-display').textContent = formatTime(remainingTime);
+            document.getElementById('timer-message').textContent = '';
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
+            prompts = [];
+            promptIndex = 0;
         }
 
         function updateTimer() {
@@ -1333,7 +1334,8 @@
                 clearInterval(timerInterval);
                 isTimerRunning = false;
                 document.getElementById('timer-message').textContent = '時間到，練習結束';
-                document.getElementById('toggle-timer').textContent = '▶️';
+                document.getElementById('start-timer').disabled = false;
+                document.getElementById('pause-timer').disabled = true;
             }
         }
 
@@ -1389,7 +1391,8 @@
             }
         }
 
-        document.getElementById('toggle-timer').addEventListener('click', toggleTimer);
+        document.getElementById('start-timer').addEventListener('click', startTimer);
+        document.getElementById('pause-timer').addEventListener('click', pauseTimer);
         document.getElementById('reset-timer').addEventListener('click', resetTimer);
         document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
         document.getElementById('structure-select').addEventListener('change', resetTimer);
