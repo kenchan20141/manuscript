@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -127,21 +126,21 @@
             color: #333;
             transition: none;
         }
-       #ask-panel {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 1003; /* 原為 1001，改為 1003 */
-    width: 400px;
-    max-height: 80vh;
-    overflow-y: auto;
-    display: none;
-}
+        #ask-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px 20px 80px 20px; /* 增加底部padding */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1001;
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
         #ask-panel h2 {
             margin-top: 0;
             text-align: center;
@@ -620,25 +619,69 @@
             updateWordCount();
         }
 
-        function handleInput(currentInput) {
-            const value = currentInput.value;
-            if (value.length > 0) {
-                const chars = value.split('');
-                let input = currentInput;
-                for (let char of chars) {
-                    input.value = char;
-                    updateWordCount();
-                    let nextInput = getNextInput(input);
-                    if (!nextInput) {
-                        addPage();
-                        nextInput = getNextInput(input);
+        function getAllInputsInOrder() {
+            const inputs = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        inputs.push(input);
                     }
-                    input = nextInput;
                 }
-                if (input) input.focus();
-            } else {
-                updateWordCount();
             }
+            return inputs;
+        }
+
+        function handleInput(currentInput) {
+            const allInputs = getAllInputsInOrder();
+            const currentIndex = allInputs.indexOf(currentInput);
+            if (currentIndex === -1) return;
+
+            const newText = currentInput.value;
+            currentInput.value = ''; // 清空當前輸入框，避免重複
+
+            // 收集從當前輸入框開始到最後一個有文字的輸入框的所有文字
+            let subsequentText = '';
+            for (let i = currentIndex; i < allInputs.length; i++) {
+                const input = allInputs[i];
+                if (input.value) {
+                    subsequentText += input.value;
+                    input.value = '';
+                } else {
+                    break;
+                }
+            }
+
+            // 將新文字插入到當前位置
+            const insertedText = newText + subsequentText;
+
+            // 重新分配文字到輸入框
+            let index = currentIndex;
+            for (let char of insertedText) {
+                if (index >= allInputs.length) {
+                    addPage();
+                    const newInputs = getAllInputsInOrder();
+                    allInputs.push(...newInputs.slice(allInputs.length));
+                }
+                allInputs[index].value = char;
+                index++;
+            }
+
+            // 將焦點移到插入文字後的下一個輸入框
+            const nextIndex = currentIndex + newText.length;
+            if (nextIndex < allInputs.length) {
+                allInputs[nextIndex].focus();
+            } else if (nextIndex === allInputs.length) {
+                addPage();
+                const newInputs = getAllInputsInOrder();
+                newInputs[nextIndex].focus();
+            }
+
+            updateWordCount();
         }
 
         function getNextInput(currentInput) {
