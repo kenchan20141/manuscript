@@ -348,6 +348,56 @@
                 font-size: 12px;
             }
         }
+        /* 倒計時面板樣式 */
+        #timer-panel {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 400px;
+            width: auto;
+        }
+        #timer-panel select, #timer-panel button {
+            padding: 5px;
+            font-size: 12px;
+            margin: 0 2px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        #timer-panel button {
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #timer-panel button:hover {
+            background-color: #45a049;
+        }
+        #timer-panel button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #timer-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 10px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #timer-message {
+            font-size: 12px;
+            color: #e63946;
+            margin-left: 10px;
+            font-weight: bold;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -366,6 +416,25 @@
         <div style="text-align: center; margin-top: 10px;">
             <input type="text" id="title-input" placeholder="請輸入題目">
         </div>
+    </div>
+    <div id="timer-panel">
+        <label for="genre-select">文類：</label>
+        <select id="genre-select" onchange="toggleStructureSelect()">
+            <option value="敘事抒情">敘事抒情</option>
+            <option value="議論">議論</option>
+        </select>
+        <div id="structure-select-div" style="display: inline-block;">
+            <label for="structure-select">結構：</label>
+            <select id="structure-select">
+                <option value="起承轉合">起承轉合</option>
+                <option value="三線">三線</option>
+            </select>
+        </div>
+        <button id="start-timer" class="action-btn">▶️</button>
+        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
+        <button id="reset-timer" class="action-btn">🔄</button>
+        <div id="timer-display">01:30:00</div>
+        <div id="timer-message"></div>
     </div>
     <div id="manuscript"></div>
     <div id="word-count">字數：0</div>
@@ -475,6 +544,14 @@
 
         let isPlaying = false;
         let currentMusic = '';
+
+        // 倒計時相關變量
+        let timerInterval;
+        let totalTime = 5400; // 90分鐘 = 5400秒
+        let remainingTime = totalTime;
+        let isTimerRunning = false;
+        let prompts = [];
+        let promptIndex = 0;
 
         function getRows(page) {
             return page % 2 === 1 ? 15 : 20;
@@ -1130,20 +1207,19 @@
 
         // 音樂播放器功能
         musicSelect.addEventListener('change', function() {
-    const selectedMusic = this.value;
-    if (selectedMusic) {
-        audio.src = selectedMusic;
-        audio.load();
-        currentMusic = selectedMusic;
-        audio.play().then(() => {
-            isPlaying = true;
-            playPauseBtn.textContent = '⏸️';
-        }).catch(error => {
-            console.error('自動播放失敗:', error);
-            // alert('請手動點擊播放按鈕');
+            const selectedMusic = this.value;
+            if (selectedMusic) {
+                audio.src = selectedMusic;
+                audio.load();
+                currentMusic = selectedMusic;
+                audio.play().then(() => {
+                    isPlaying = true;
+                    playPauseBtn.textContent = '⏸️';
+                }).catch(error => {
+                    console.error('自動播放失敗:', error);
+                });
+            }
         });
-    }
-});
 
         audio.addEventListener('canplay', function() {
             if (isPlaying) {
@@ -1209,6 +1285,119 @@
             musicPlayer.classList.remove('hidden');
             showPlayerBtn.style.display = 'none';
         });
+
+        // 倒計時功能
+        function toggleStructureSelect() {
+            const genre = document.getElementById('genre-select').value;
+            const structureDiv = document.getElementById('structure-select-div');
+            if (genre === '敘事抒情') {
+                structureDiv.style.display = 'inline-block';
+            } else {
+                structureDiv.style.display = 'none';
+            }
+            resetTimer(); // 切換文類時重置倒計時
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            document.getElementById('start-timer').disabled = true;
+            document.getElementById('pause-timer').disabled = false;
+            setPrompts();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function pauseTimer() {
+            if (!isTimerRunning) return;
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            remainingTime = totalTime;
+            document.getElementById('timer-display').textContent = formatTime(remainingTime);
+            document.getElementById('timer-message').textContent = '';
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
+            prompts = [];
+            promptIndex = 0;
+        }
+
+        function updateTimer() {
+            if (remainingTime > 0) {
+                remainingTime--;
+                document.getElementById('timer-display').textContent = formatTime(remainingTime);
+                checkPrompts();
+            } else {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                document.getElementById('timer-message').textContent = '時間到，練習結束';
+                document.getElementById('start-timer').disabled = false;
+                document.getElementById('pause-timer').disabled = true;
+            }
+        }
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function setPrompts() {
+            const genre = document.getElementById('genre-select').value;
+            const structure = document.getElementById('structure-select').value;
+            prompts = [];
+
+            if (genre === '敘事抒情') {
+                if (structure === '起承轉合') {
+                    prompts = [
+                        { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
+                        { time: totalTime - 1800, message: '應已完成「起」' }, // 30分鐘
+                        { time: totalTime - 3300, message: '應已完成「承」' }, // 55分鐘
+                        { time: totalTime - 4800, message: '應已完成「轉」' }, // 80分鐘
+                        { time: 0, message: '時間到，練習結束' }
+                    ];
+                } else if (structure === '三線') {
+                    prompts = [
+                        { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
+                        { time: totalTime - 1500, message: '應已完成「起」' }, // 25分鐘
+                        { time: totalTime - 2580, message: '應已完成「一線」' }, // 43分鐘
+                        { time: totalTime - 3660, message: '應已完成「二線」' }, // 61分鐘
+                        { time: totalTime - 4740, message: '應已完成「三線」' }, // 79分鐘
+                        { time: 0, message: '時間到，練習結束' }
+                    ];
+                }
+            } else if (genre === '議論') {
+                prompts = [
+                    { time: totalTime - 900, message: '應已完成大綱' }, // 15分鐘
+                    { time: totalTime - 1500, message: '應已完成「起」' }, // 25分鐘
+                    { time: totalTime - 2100, message: '應已完成「結構段一」' }, // 35分鐘
+                    { time: totalTime - 3000, message: '應已完成「結構段二」' }, // 50分鐘
+                    { time: totalTime - 3900, message: '應已完成「結構段三」' }, // 65分鐘
+                    { time: totalTime - 4800, message: '應已完成「結構段四」' }, // 80分鐘
+                    { time: 0, message: '時間到，練習結束' }
+                ];
+            }
+            promptIndex = 0;
+        }
+
+        function checkPrompts() {
+            if (promptIndex < prompts.length && remainingTime <= prompts[promptIndex].time) {
+                document.getElementById('timer-message').textContent = prompts[promptIndex].message;
+                promptIndex++;
+            }
+        }
+
+        document.getElementById('start-timer').addEventListener('click', startTimer);
+        document.getElementById('pause-timer').addEventListener('click', pauseTimer);
+        document.getElementById('reset-timer').addEventListener('click', resetTimer);
+        document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
+        document.getElementById('structure-select').addEventListener('change', resetTimer);
     </script>
 </body>
 </html>
