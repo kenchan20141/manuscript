@@ -10,6 +10,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 10px;
+            padding-bottom: 100px;
             overflow: auto;
         }
         #controls {
@@ -259,6 +260,7 @@
             bottom: 0;
             left: 0;
             width: 100%;
+            height: 50px;
             background-color: #333;
             color: white;
             padding: 10px;
@@ -268,6 +270,7 @@
             z-index: 1002;
             box-sizing: border-box;
             font-size: 14px;
+            overflow: hidden;
         }
         #music-player.hidden {
             display: none;
@@ -281,7 +284,7 @@
             background: none;
             border: none;
             color: white;
-            font-size: 16px;
+            font-size: 20px;
             cursor: pointer;
             margin-right: 10px;
         }
@@ -289,10 +292,9 @@
             background: #444;
             color: white;
             border: none;
-            padding: 3px;
+            padding: 5px;
             border-radius: 3px;
             max-width: 150px;
-            font-size: 14px;
         }
         #music-player .progress {
             flex: 1;
@@ -356,7 +358,6 @@
             right: 0;
             height: 50px;
             background-color: #444;
-            color: white;
             padding: 5px;
             display: flex;
             justify-content: center;
@@ -374,8 +375,7 @@
             cursor: pointer;
         }
         #timer-panel select {
-            background-color: #555;
-            color: white;
+            background-color: #f9f9f9;
         }
         #timer-panel button {
             background-color: #4CAF50;
@@ -392,7 +392,7 @@
         #timer-display {
             font-size: 16px;
             font-weight: bold;
-            color: white;
+            color: #333;
             margin: 0 10px;
             font-family: 'Courier New', Courier, monospace;
         }
@@ -401,9 +401,6 @@
             color: #e63946;
             margin-left: 10px;
             font-weight: bold;
-        }
-        #manuscript {
-            padding-bottom: 100px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -452,9 +449,7 @@
             <option value="serious">嚴肅正經</option>
             <option value="chen">陳SIR語氣</option>
         </select>
-        <div id="outline-area">
-            <!-- Outline tables will be generated here -->
-        </div>
+        <div id="outline-area"></div>
         <textarea id="question" rows="4" placeholder="請在此輸入您的問題..."></textarea>
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
@@ -550,7 +545,7 @@
         let currentMusic = '';
 
         let timerInterval;
-        let totalTime = 5400; // 90分鐘 = 5400秒
+        let totalTime = 5400;
         let remainingTime = totalTime;
         let isTimerRunning = false;
         let prompts = [];
@@ -602,6 +597,7 @@
                     const td = document.createElement('td');
                     const input = document.createElement('input');
                     input.type = 'text';
+                    input.maxLength = 1;
                     input.dataset.page = pageCount;
                     input.dataset.row = row;
                     input.dataset.col = col;
@@ -620,6 +616,7 @@
                         this.value = pastedText;
                         handleInput(this);
                     });
+                    input.setAttribute('data-old-value', '');
                     td.appendChild(input);
                     tr.appendChild(td);
                 }
@@ -630,25 +627,31 @@
             updateWordCount();
         }
 
-        function handleInput(currentInput) {
-            const value = currentInput.value;
-            if (value.length > 0) {
-                const chars = value.split('');
-                let input = currentInput;
-                for (let char of chars) {
-                    input.value = char;
-                    updateWordCount();
-                    let nextInput = getNextInput(input);
-                    if (!nextInput) {
-                        addPage();
-                        nextInput = getNextInput(input);
-                    }
-                    input = nextInput;
-                }
-                if (input) input.focus();
-            } else {
-                updateWordCount();
+        function shiftCharacters(startInput, charToInsert) {
+            let currentInput = startInput;
+            let oldValue = charToInsert;
+            while (currentInput && oldValue !== '') {
+                let temp = currentInput.value;
+                currentInput.value = oldValue;
+                currentInput.setAttribute('data-old-value', oldValue);
+                oldValue = temp;
+                currentInput = getNextInput(currentInput);
             }
+        }
+
+        function handleInput(currentInput) {
+            const newChar = currentInput.value;
+            const oldValue = currentInput.getAttribute('data-old-value') || '';
+            if (newChar !== '' && oldValue !== '') {
+                let nextInput = getNextInput(currentInput);
+                if (nextInput) {
+                    shiftCharacters(nextInput, oldValue);
+                }
+            }
+            currentInput.setAttribute('data-old-value', newChar);
+            updateWordCount();
+            let nextInput = getNextInput(currentInput);
+            if (nextInput) nextInput.focus();
         }
 
         function getNextInput(currentInput) {
@@ -696,6 +699,7 @@
             );
             if (prevInput) {
                 prevInput.value = '';
+                prevInput.setAttribute('data-old-value', '');
                 prevInput.focus();
             }
         }
@@ -753,6 +757,7 @@
                                 `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
                             );
                             input.value = pageData[row - 1][col - 1];
+                            input.setAttribute('data-old-value', input.value);
                         }
                     }
                 });
@@ -1265,7 +1270,7 @@
                     if (options[i].value === currentMusic) {
                         let nextIndex = (i + 1) % options.length;
                         if (nextIndex === 0) {
-                            nextIndex = 1; // 跳過 "選擇音樂"，播放第一首歌
+                            nextIndex = 1;
                         }
                         currentMusic = options[nextIndex].value;
                         musicSelect.value = currentMusic;
@@ -1302,7 +1307,6 @@
         function startTimer() {
             if (isTimerRunning) return;
             isTimerRunning = true;
-            document.getElementById('timer-control').textContent = '⏸️';
             setPrompts();
             timerInterval = setInterval(updateTimer, 1000);
         }
@@ -1311,7 +1315,6 @@
             if (!isTimerRunning) return;
             isTimerRunning = false;
             clearInterval(timerInterval);
-            document.getElementById('timer-control').textContent = '▶️';
         }
 
         function resetTimer() {
@@ -1321,8 +1324,6 @@
             document.getElementById('timer-display').textContent = formatTime(remainingTime);
             document.getElementById('timer-message').textContent = '';
             document.getElementById('timer-control').textContent = '▶️';
-            prompts = [];
-            promptIndex = 0;
         }
 
         function updateTimer() {
@@ -1333,8 +1334,8 @@
             } else {
                 clearInterval(timerInterval);
                 isTimerRunning = false;
-                document.getElementById('timer-control').textContent = '▶️';
                 document.getElementById('timer-message').textContent = '時間到，練習結束';
+                document.getElementById('timer-control').textContent = '▶️';
             }
         }
 
@@ -1393,8 +1394,10 @@
         document.getElementById('timer-control').addEventListener('click', function() {
             if (isTimerRunning) {
                 pauseTimer();
+                this.textContent = '▶️';
             } else {
                 startTimer();
+                this.textContent = '⏸️';
             }
         });
 
