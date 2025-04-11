@@ -1154,6 +1154,10 @@
         });
 
         progressBarMusic.addEventListener('input', function() {
+            if (!audio.duration) {
+                console.log('音樂未載入，無法跳轉');
+                return;
+            }
             const time = (this.value / 100) * audio.duration;
             audio.currentTime = time;
         });
