@@ -4,13 +4,194 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文寫作</title>
-    <!-- 樣式部分保持不變 -->
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            overflow: auto;
+        }
+        #controls {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .button-group {
+            margin-bottom: 10px;
+        }
+        .button-group button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+        .action-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .action-btn:hover {
+            background-color: #45a049;
+        }
+        .copy-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .copy-btn:hover {
+            background-color: #1e87db;
+        }
+        .ask-btn {
+            background-color: #FF5722;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        .ask-btn:hover {
+            background-color: #E64A19;
+        }
+        .page {
+            margin: 0 auto 10px;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .page.eye-protection {
+            background-color: #fdf5e6;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .grid {
+            border-collapse: separate;
+            border-spacing: 0 2px;
+            width: 100%;
+        }
+        .grid td {
+            width: 5%;
+            aspect-ratio: 1 / 1;
+            border: 1px solid #ccc;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .grid input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            outline: none;
+            background: transparent;
+            box-sizing: border-box;
+            padding: 0;
+            line-height: 1;
+        }
+        .grid input:focus {
+            border: 1px solid #4CAF50;
+        }
+        #word-count {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        #progress-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        #progress-box {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #eye-protection {
+            background-color: #FFD700;
+            color: #333;
+            transition: none;
+        }
+        /* 音樂面板樣式 */
+        #music-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #music-panel select {
+            padding: 5px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        #music-panel button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            transition: transform 0.2s;
+        }
+        #music-panel button:hover {
+            transform: scale(1.1);
+        }
+        #music-panel input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+        #youtube-player {
+            display: none;
+        }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-    <!-- HTML 結構保持不變 -->
+    <div id="controls">
+        <div class="button-group">
+            <button id="save" class="action-btn">儲存</button>
+            <button id="clear" class="action-btn">清空</button>
+            <button id="add-page" class="action-btn">新增頁面</button>
+            <button id="copy-all" class="copy-btn">一鍵複製全文</button>
+            <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
+            <button id="eye-protection" class="action-btn">護眼模式</button>
+            <button id="ask-chen" class="ask-btn">👨‍🏫向陳SIR發問</button>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+            <input type="text" id="title-input" placeholder="請輸入題目">
+        </div>
+    </div>
+    <div id="manuscript"></div>
+    <div id="word-count">字數：0</div>
+    <div id="progress-overlay">
+        <div id="progress-box">
+            <p>正在導出 PDF...</p>
+            <progress id="progress-bar" value="0" max="100"></progress>
+        </div>
+    </div>
+    <!-- 音樂面板 -->
     <div id="music-panel">
         <select id="music-select">
             <option value="">選擇音樂</option>
@@ -24,7 +205,301 @@
     <div id="youtube-player"></div>
 
     <script>
-        // 其他腳本保持不變，直到音樂播放控制部分
+        const manuscript = document.getElementById('manuscript');
+        const wordCountDiv = document.getElementById('word-count');
+        const progressOverlay = document.getElementById('progress-overlay');
+        const progressBar = document.getElementById('progress-bar');
+        let pageCount = 0;
+        let totalWords = 0;
+        let isEyeProtection = false;
+
+        function getRows(page) {
+            return page % 2 === 1 ? 15 : 20;
+        }
+
+        function getCols() {
+            return 20;
+        }
+
+        function updateWordCount() {
+            totalWords = 0;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        if (input && input.value) totalWords++;
+                    }
+                }
+            }
+            wordCountDiv.textContent = `字數：${totalWords}`;
+        }
+
+        function addPage() {
+            pageCount++;
+            const rows = getRows(pageCount);
+            const cols = getCols();
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            if (isEyeProtection) pageDiv.classList.add('eye-protection');
+            pageDiv.dataset.page = pageCount;
+            const title = document.createElement('div');
+            title.className = 'title';
+            const titleInput = document.getElementById('title-input');
+            title.textContent = titleInput.value.trim() || '中文寫作';
+            pageDiv.appendChild(title);
+            const table = document.createElement('table');
+            table.className = 'grid';
+            for (let row = 1; row <= rows; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 1; col <= cols; col++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.dataset.page = pageCount;
+                    input.dataset.row = row;
+                    input.dataset.col = col;
+                    input.addEventListener('compositionstart', function() { this.isComposing = true; });
+                    input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
+                    input.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value === '') {
+                            moveToPrevInput(this);
+                            updateWordCount();
+                        }
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            pageDiv.appendChild(table);
+            manuscript.appendChild(pageDiv);
+            updateWordCount();
+        }
+
+        function handleInput(currentInput) {
+            const value = currentInput.value;
+            if (value.length > 0) {
+                const chars = value.split('');
+                let input = currentInput;
+                for (let char of chars) {
+                    input.value = char;
+                    updateWordCount();
+                    let nextInput = getNextInput(input);
+                    if (!nextInput) {
+                        addPage();
+                        nextInput = getNextInput(input);
+                    }
+                    input = nextInput;
+                }
+                if (input) input.focus();
+            } else {
+                updateWordCount();
+            }
+        }
+
+        function getNextInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let nextCol = currentCol + 1;
+            let nextRow = currentRow;
+            let nextPage = currentPage;
+            const cols = getCols();
+            const rows = getRows(currentPage);
+            if (nextCol > cols) {
+                nextCol = 1;
+                nextRow = currentRow + 1;
+                if (nextRow > rows) {
+                    nextRow = 1;
+                    nextPage = currentPage + 1;
+                    if (nextPage > pageCount) addPage();
+                }
+            }
+            return document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+            );
+        }
+
+        function moveToPrevInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let prevCol = currentCol - 1;
+            let prevRow = currentRow;
+            let prevPage = currentPage;
+            const cols = getCols();
+            if (prevCol < 1) {
+                prevCol = cols;
+                prevRow = currentRow - 1;
+                if (prevRow < 1) {
+                    prevRow = getRows(currentPage - 1);
+                    prevPage = currentPage - 1;
+                    if (prevPage < 1) return;
+                }
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
+            );
+            if (prevInput) {
+                prevInput.value = '';
+                prevInput.focus();
+            }
+        }
+
+        addPage();
+
+        document.getElementById('add-page').addEventListener('click', addPage);
+
+        document.getElementById('save').addEventListener('click', function() {
+            const data = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                const pageData = [];
+                for (let row = 1; row <= rows; row++) {
+                    const rowData = [];
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        rowData.push(input.value);
+                    }
+                    pageData.push(rowData);
+                }
+                data.push(pageData);
+            }
+            localStorage.setItem('manuscript', JSON.stringify(data));
+            const title = document.getElementById('title-input').value;
+            localStorage.setItem('title', title);
+            alert('文章已儲存');
+        });
+
+        document.getElementById('clear').addEventListener('click', function() {
+            if (confirm('確定要清空所有文字嗎？')) {
+                manuscript.innerHTML = '';
+                pageCount = 0;
+                addPage();
+                localStorage.removeItem('manuscript');
+                localStorage.removeItem('title');
+                document.getElementById('title-input').value = '';
+                updateWordCount();
+            }
+        });
+
+        function loadManuscript() {
+            const data = JSON.parse(localStorage.getItem('manuscript'));
+            if (data) {
+                data.forEach((pageData, pageIndex) => {
+                    if (pageIndex > 0) addPage();
+                    const rows = getRows(pageIndex + 1);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            const input = document.querySelector(
+                                `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            );
+                            input.value = pageData[row - 1][col - 1];
+                        }
+                    }
+                });
+                updateWordCount();
+            }
+            const savedTitle = localStorage.getItem('title');
+            if (savedTitle) {
+                document.getElementById('title-input').value = savedTitle;
+                const titles = document.querySelectorAll('.title');
+                titles.forEach(title => title.textContent = savedTitle);
+            }
+        }
+        loadManuscript();
+
+        document.getElementById('copy-all').addEventListener('click', function() {
+            let text = '';
+            let isNewParagraph = true;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    let line = '';
+                    let isEmptyFirstTwo = true;
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        const char = input.value || '';
+                        line += char;
+                        if (col <= 2 && char !== '') isEmptyFirstTwo = false;
+                    }
+                    line = line.trimEnd();
+                    if (line) {
+                        if (isNewParagraph && isEmptyFirstTwo) text += '\n';
+                        text += line + '\n';
+                        isNewParagraph = isEmptyFirstTwo;
+                    } else {
+                        text += '\n';
+                        isNewParagraph = true;
+                    }
+                }
+                if (page < pageCount) text += '\n';
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert('全文已複製到剪貼板');
+            });
+        });
+
+        const eyeProtectionBtn = document.getElementById('eye-protection');
+        eyeProtectionBtn.addEventListener('click', function() {
+            isEyeProtection = !isEyeProtection;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                page.classList.toggle('eye-protection', isEyeProtection);
+            });
+            localStorage.setItem('eyeProtection', isEyeProtection);
+        });
+
+        if (localStorage.getItem('eyeProtection') === 'true') {
+            isEyeProtection = true;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.add('eye-protection'));
+        }
+
+        document.getElementById('export-pdf').addEventListener('click', async function() {
+            progressOverlay.style.display = 'flex';
+            progressBar.value = 0;
+            const pages = document.querySelectorAll('.page');
+            const totalPages = pages.length;
+            const originalBoxShadows = [];
+            pages.forEach(page => {
+                originalBoxShadows.push(page.style.boxShadow);
+                page.style.boxShadow = 'none';
+            });
+            const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+            for (let i = 0; i < totalPages; i++) {
+                const page = pages[i];
+                const canvas = await html2canvas(page, {
+                    scale: 2,
+                    useCORS: true,
+                    width: page.offsetWidth,
+                    height: page.offsetHeight
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pdfWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                progressBar.value = ((i + 1) / totalPages) * 100;
+            }
+            pages.forEach((page, index) => page.style.boxShadow = originalBoxShadows[index]);
+            pdf.save('manuscript.pdf');
+            progressOverlay.style.display = 'none';
+        });
 
         // 音樂播放控制
         let player;
@@ -33,71 +508,76 @@
         let progressInterval;
 
         function onYouTubeIframeAPIReady() {
-            // 初始化播放器
+            document.getElementById('music-select').addEventListener('change', function() {
+                const videoId = this.value;
+                if (videoId) {
+                    loadVideo(videoId);
+                }
+            });
+
+            document.getElementById('play-btn').addEventListener('click', function() {
+                if (player && currentVideoId) {
+                    player.playVideo();
+                }
+            });
+
+            document.getElementById('pause-btn').addEventListener('click', function() {
+                if (player) {
+                    player.pauseVideo();
+                }
+            });
+
+            document.getElementById('progress-bar').addEventListener('input', function() {
+                if (player) {
+                    const time = (this.value / 100) * player.getDuration();
+                    player.seekTo(time, true);
+                }
+            });
+        }
+
+        function loadVideo(videoId) {
+            if (player) {
+                player.destroy();
+            }
+            currentVideoId = videoId;
             player = new YT.Player('youtube-player', {
                 height: '0',
                 width: '0',
+                videoId: videoId,
                 playerVars: {
-                    'autoplay': 0, // 不自動播放
-                    'controls': 0, // 隱藏控制條
-                    'disablekb': 1, // 禁用鍵盤控制
-                    'enablejsapi': 1, // 啟用 JS API
-                    'iv_load_policy': 3, // 隱藏影片註解
-                    'modestbranding': 1, // 減少 YouTube 品牌顯示
-                    'rel': 0, // 不顯示相關影片
-                    'showinfo': 0 // 隱藏影片資訊
+                    'autoplay': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'enablejsapi': 1,
+                    'iv_load_policy': 3,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0
                 },
                 events: {
                     'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange
                 }
             });
-
-            // 監聽音樂選擇
-            document.getElementById('music-select').addEventListener('change', function() {
-                const videoId = this.value;
-                if (videoId) {
-                    currentVideoId = videoId;
-                    player.loadVideoById(videoId); // 載入選定的影片
-                }
-            });
-
-            // 播放按鈕
-            document.getElementById('play-btn').addEventListener('click', function() {
-                if (player && currentVideoId) {
-                    player.playVideo(); // 播放影片
-                } else {
-                    alert('請先選擇音樂！');
-                }
-            });
-
-            // 暫停按鈕
-            document.getElementById('pause-btn').addEventListener('click', function() {
-                if (player) {
-                    player.pauseVideo(); // 暫停影片
-                }
-            });
-
-            // 進度條控制
-            document.getElementById('progress-bar').addEventListener('input', function() {
-                if (player) {
-                    const time = (this.value / 100) * player.getDuration();
-                    player.seekTo(time, true); // 跳轉到指定時間
-                }
-            });
         }
 
         function onPlayerReady(event) {
-            // 播放器準備好時不自動播放，等待用戶操作
+            event.target.playVideo();
         }
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
                 isPlaying = true;
-                startProgressUpdate(); // 開始更新進度條
+                startProgressUpdate();
+                // 嘗試跳過廣告
+                setTimeout(() => {
+                    if (player.getCurrentTime() < 5 && player.getDuration() > 0) {
+                        player.seekTo(5, true); // 跳過前5秒可能的廣告
+                    }
+                }, 1000);
             } else {
                 isPlaying = false;
-                stopProgressUpdate(); // 停止更新進度條
+                stopProgressUpdate();
             }
         }
 
@@ -122,7 +602,11 @@
             }
         }
 
-        // 其他腳本保持不變
+        document.getElementById('title-input').addEventListener('input', function() {
+            const newTitle = this.value.trim() || '中文寫作';
+            const titles = document.querySelectorAll('.title');
+            titles.forEach(title => title.textContent = newTitle);
+        });
     </script>
 </body>
 </html>
