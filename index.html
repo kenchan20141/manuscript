@@ -254,72 +254,56 @@
             padding: 5px;
             margin-top: 10px;
         }
-        /* 音樂面板樣式 */
         #music-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #f0f0f0;
+            background-color: #fff;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
             padding: 10px;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
-            justify-content: space-around;
+            justify-content: space-between;
             z-index: 1000;
         }
-        #music-panel button, #music-panel select {
-            margin: 0 5px;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        #music-select {
+            flex: 1;
+            margin-right: 10px;
         }
         #play-pause-btn {
-            background-color: #4CAF50;
-            color: white;
-            font-size: 16px;
-        }
-        #play-pause-btn:hover {
-            background-color: #45a049;
-        }
-        #music-progress-bar {
-            width: 50%;
-            height: 10px;
+            background: none;
+            border: none;
+            font-size: 24px;
             cursor: pointer;
         }
-        #music-select {
-            padding: 5px;
+        #progress-bar {
+            flex: 2;
+            margin: 0 10px;
         }
-        #hide-btn {
+        #hide-panel {
             background-color: #dc3545;
             color: white;
-        }
-        #hide-btn:hover {
-            background-color: #c82333;
-        }
-        #ad-status {
-            font-size: 12px;
-            color: #666;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
         }
         @media (max-width: 600px) {
             #music-panel {
-                flex-wrap: wrap;
                 padding: 5px;
             }
-            #music-progress-bar {
-                width: 100%;
-                margin: 5px 0;
+            #play-pause-btn {
+                font-size: 20px;
             }
-            #music-panel button, #music-panel select {
-                margin: 2px;
+            #hide-panel {
+                padding: 3px 6px;
                 font-size: 12px;
             }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
     <div id="controls">
@@ -331,7 +315,6 @@
             <button id="export-pdf" class="action-btn" style="background-color: red;">導出PDF</button>
             <button id="eye-protection" class="action-btn">護眼模式</button>
             <button id="ask-chen" class="ask-btn">👨‍🏫向陳SIR發問</button>
-            <button id="show-music" class="action-btn">顯示音樂面板</button>
         </div>
         <div style="text-align: center; margin-top: 10px;">
             <input type="text" id="title-input" placeholder="請輸入題目">
@@ -372,18 +355,19 @@
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
     </div>
-    <!-- 音樂面板 -->
     <div id="music-panel">
-        <button id="play-pause-btn">▶️</button>
-        <progress id="music-progress-bar" value="0" max="100"></progress>
         <select id="music-select">
-            <option value="miyazaki">宮崎駿</option>
-            <option value="relax">輕鬆悠閑</option>
+            <option value="">選擇音樂</option>
+            <option value="宮崎駿">宮崎駿</option>
+            <option value="輕鬆悠閑">輕鬆悠閑</option>
         </select>
-        <button id="hide-btn">隱藏</button>
-        <div id="ad-status"></div>
+        <button id="play-pause-btn">▶️</button>
+        <input type="range" id="progress-bar" min="0" max="100" value="0">
+        <button id="hide-panel">隱藏</button>
     </div>
-    <div id="player"></div>
+    <div id="music-player" style="display: none;">
+        <iframe id="music-iframe" src="" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+    </div>
 
     <script>
         const manuscript = document.getElementById('manuscript');
@@ -923,7 +907,7 @@
             if (category === '敘事抒情') {
                 prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
             } else if (category === '議論') {
-                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
+                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外antle;3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
             }
 
             if (tone === 'chen') {
@@ -1052,104 +1036,78 @@
             });
         });
 
-        // 音樂播放器邏輯
-        let player;
-        let isAdPlaying = false;
-        let lastTime = 0;
+        // Music Panel JavaScript
+        const musicSelect = document.getElementById('music-select');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const hidePanelBtn = document.getElementById('hide-panel');
+        const musicIframe = document.getElementById('music-iframe');
+        let isPlaying = false;
+        let currentMusic = '';
 
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player('player', {
-                height: '0', // 隱藏視頻
-                width: '0',
-                videoId: 'b5d5OmmUlPc', // 默認宮崎駿
-                playerVars: {
-                    'autoplay': 0,
-                    'controls': 0,
-                    'disablekb': 1,
-                    'fs': 0,
-                    'iv_load_policy': 3,
-                    'modestbranding': 1,
-                    'rel': 0,
-                    'showinfo': 0
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
-            });
-        }
+        const musicUrls = {
+            '宮崎駿': '//player.bilibili.com/player.html?isOutside=true&aid=919192153&bvid=BV17u4y1V7ub&cid=1352690388&p=1',
+            '輕鬆悠閑': '//player.bilibili.com/player.html?isOutside=true&aid=114311460619473&bvid=BV1cxduYVE1d&cid=29329983525&p=1'
+        };
 
-        function onPlayerReady(event) {
-            player.setVolume(50); // 初始音量
-            setInterval(updateProgressBar, 1000); // 每秒更新進度條
-        }
-
-        function onPlayerStateChange(event) {
-            const playPauseBtn = document.getElementById('play-pause-btn');
-            if (event.data === YT.PlayerState.PLAYING) {
-                playPauseBtn.textContent = '⏸️';
-            } else {
+        musicSelect.addEventListener('change', function() {
+            currentMusic = this.value;
+            if (currentMusic) {
+                musicIframe.src = musicUrls[currentMusic];
+                isPlaying = false;
                 playPauseBtn.textContent = '▶️';
             }
-        }
+        });
 
-        function updateProgressBar() {
-            if (player && player.getCurrentTime) {
-                const currentTime = player.getCurrentTime();
-                const duration = player.getDuration();
-                if (duration > 0) {
-                    const progress = (currentTime / duration) * 100;
-                    document.getElementById('music-progress-bar').value = progress;
+        playPauseBtn.addEventListener('click', function() {
+            if (currentMusic) {
+                if (isPlaying) {
+                    musicIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    playPauseBtn.textContent = '▶️';
+                } else {
+                    musicIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    playPauseBtn.textContent = '⏸️';
                 }
-                // 檢測廣告
-                if (currentTime < lastTime - 5 && lastTime > 5) { // 時間跳回超過5秒，假設為廣告
-                    isAdPlaying = true;
-                    player.setVolume(0);
-                    document.getElementById('ad-status').textContent = '廣告播放中';
-                } else if (isAdPlaying && currentTime > lastTime) { // 廣告結束
-                    isAdPlaying = false;
-                    player.setVolume(50);
-                    document.getElementById('ad-status').textContent = '';
+                isPlaying = !isPlaying;
+            }
+        });
+
+        progressBar.addEventListener('input', function() {
+            if (currentMusic) {
+                const seekTime = (this.value / 100) * musicIframe.contentWindow.document.querySelector('video').duration;
+                musicIframe.contentWindow.postMessage(`{"event":"command","func":"seekTo","args":[${seekTime}, true]}`, '*');
+            }
+        });
+
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.eventName === 'onStateChange') {
+                const state = event.data.info;
+                if (state === 1) {
+                    isPlaying = true;
+                    playPauseBtn.textContent = '⏸️';
+                } else if (state === 2) {
+                    isPlaying = false;
+                    playPauseBtn.textContent = '▶️';
                 }
-                lastTime = currentTime;
-            }
-        }
-
-        document.getElementById('play-pause-btn').addEventListener('click', function() {
-            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-                player.pauseVideo();
-            } else {
-                player.playVideo();
+            } else if (event.data && event.data.eventName === 'onProgress') {
+                const progress = event.data.info;
+                progressBar.value = progress;
             }
         });
 
-        document.getElementById('music-progress-bar').addEventListener('click', function(e) {
-            const progressBar = this;
-            const rect = progressBar.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const width = rect.width;
-            const percentage = clickX / width;
-            const duration = player.getDuration();
-            const seekTime = percentage * duration;
-            player.seekTo(seekTime, true);
-        });
-
-        document.getElementById('music-select').addEventListener('change', function() {
-            const selected = this.value;
-            let videoId;
-            if (selected === 'miyazaki') {
-                videoId = 'b5d5OmmUlPc'; // 宮崎駿
-            } else if (selected === 'relax') {
-                videoId = '2gIAmAZhWzM'; // 輕鬆悠閑
-            }
-            player.loadVideoById(videoId);
-        });
-
-        document.getElementById('hide-btn').addEventListener('click', function() {
+        hidePanelBtn.addEventListener('click', function() {
             document.getElementById('music-panel').style.display = 'none';
         });
 
-        document.getElementById('show-music').addEventListener('click', function() {
+        const showPanelBtn = document.createElement('button');
+        showPanelBtn.textContent = '顯示音樂面板';
+        showPanelBtn.style.position = 'fixed';
+        showPanelBtn.style.bottom = '10px';
+        showPanelBtn.style.right = '10px';
+        showPanelBtn.style.zIndex = '1001';
+        document.body.appendChild(showPanelBtn);
+
+        showPanelBtn.addEventListener('click', function() {
             document.getElementById('music-panel').style.display = 'flex';
         });
     </script>
