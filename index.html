@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -11,7 +13,6 @@
             margin: 0;
             padding: 10px;
             overflow: auto;
-            padding-bottom: 100px; /* 為面板預留空間 */
         }
         #controls {
             text-align: center;
@@ -30,11 +31,11 @@
             transition: background-color 0.3s;
         }
         .action-btn {
-            background: none; /* 移除綠色背景 */
-            color: white; /* 圖示顏色 */
-            font-size: 24px; /* 放大圖示 */
-            cursor: pointer;
-            margin: 0 5px;
+            background-color: #4CAF50;
+            color: white;
+        }
+        .action-btn:hover {
+            background-color: #45a049;
         }
         .copy-btn {
             background-color: #2196F3;
@@ -257,7 +258,7 @@
         }
         #music-player {
             position: fixed;
-            bottom: 0; /* 調整為下方 */
+            bottom: 50px;
             left: 0;
             width: 100%;
             background-color: #333;
@@ -352,49 +353,54 @@
         /* 倒計時面板樣式 */
         #timer-panel {
             position: fixed;
-            bottom: 50px; /* 調整為上方 */
+            bottom: 0;
             left: 0;
             right: 0;
             height: 50px;
-            background-color: #555555; /* 深灰色 */
-            color: white;
+            background-color: #f0f0f0;
             padding: 5px;
             display: flex;
-            justify-content: space-between; /* 為音樂圖示預留空間 */
+            justify-content: center;
             align-items: center;
             z-index: 1001;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-        #timer-panel select {
+        #timer-panel select, #timer-panel button {
             padding: 5px;
             font-size: 12px;
             margin: 0 2px;
             border-radius: 4px;
             border: 1px solid #ccc;
-            background-color: #f9f9f9;
             cursor: pointer;
+        }
+        #timer-panel select {
+            background-color: #f9f9f9;
+        }
+        #timer-panel button {
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #timer-panel button:hover {
+            background-color: #45a049;
+        }
+        #timer-panel button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         #timer-display {
             font-size: 16px;
             font-weight: bold;
-            color: white; /* 調整文字顏色 */
+            color: #333;
             margin: 0 10px;
             font-family: 'Courier New', Courier, monospace;
         }
         #timer-message {
             font-size: 12px;
-            color: #ffcccc; /* 提高可讀性 */
+            color: #e63946;
             margin-left: 10px;
             font-weight: bold;
-        }
-        #show-music-icon {
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -443,7 +449,9 @@
             <option value="serious">嚴肅正經</option>
             <option value="chen">陳SIR語氣</option>
         </select>
-        <div id="outline-area"></div>
+        <div id="outline-area">
+            <!-- Outline tables will be generated here -->
+        </div>
         <textarea id="question" rows="4" placeholder="請在此輸入您的問題..."></textarea>
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
@@ -454,7 +462,7 @@
             <select id="music-select">
                 <option value="">選擇音樂</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Abysswalker.mp3">The Abysswalker</option>
-                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戰乙女</option>
+                <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-Rosemoon.mp3">死せる都の戦乙女</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-deadly.mp3">五大罪</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Battle-rapier.mp3">繼承劍的少女</option>
                 <option value="https://youfulca.com/wp-content/uploads/2022/08/Ariadne-Battle.mp3">不屈意志之刃</option>
@@ -505,11 +513,11 @@
                 <option value="三線">三線</option>
             </select>
         </div>
-        <button id="timer-control" class="action-btn">▶️</button>
+        <button id="start-timer" class="action-btn">▶️</button>
+        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
         <button id="reset-timer" class="action-btn">🔄</button>
         <div id="timer-display">01:30:00</div>
         <div id="timer-message"></div>
-        <button id="show-music-icon" style="display: none;">🎵</button>
     </div>
 
     <script>
@@ -535,7 +543,6 @@
         const hidePlayerBtn = document.getElementById('hide-player');
         const showPlayerBtn = document.getElementById('show-player');
         const musicPlayer = document.getElementById('music-player');
-        const showMusicIcon = document.getElementById('show-music-icon');
 
         let isPlaying = false;
         let currentMusic = '';
@@ -753,7 +760,9 @@
             if (savedTitle) {
                 document.getElementById('title-input').value = savedTitle;
                 const titles = document.querySelectorAll('.title');
-                titles.forEach(title => title.textContent = savedTitle);
+                titles.forEach(title => {
+                    title.textContent = savedTitle;
+                });
             }
         }
         loadManuscript();
@@ -971,7 +980,9 @@
             const rows = table.rows;
             let structureSegmentCount = 0;
             for (let i = 1; i < rows.length - 1; i++) {
-                if (rows[i].cells[0].innerText.startsWith('結構段')) structureSegmentCount++;
+                if (rows[i].cells[0].innerText.startsWith('結構段')) {
+                    structureSegmentCount++;
+                }
             }
             const newSegmentNumber = structureSegmentCount + 1;
             const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
@@ -1190,7 +1201,9 @@
         document.getElementById('title-input').addEventListener('input', function() {
             const newTitle = this.value.trim() || '中文寫作';
             const titles = document.querySelectorAll('.title');
-            titles.forEach(title => title.textContent = newTitle);
+            titles.forEach(title => {
+                title.textContent = newTitle;
+            });
         });
 
         musicSelect.addEventListener('change', function() {
@@ -1209,7 +1222,9 @@
         });
 
         audio.addEventListener('canplay', function() {
-            if (isPlaying) audio.play();
+            if (isPlaying) {
+                audio.play();
+            }
         });
 
         playPauseBtn.addEventListener('click', function() {
@@ -1247,7 +1262,9 @@
                 for (let i = 0; i < options.length; i++) {
                     if (options[i].value === currentMusic) {
                         let nextIndex = (i + 1) % options.length;
-                        if (nextIndex === 0) nextIndex = 1; // 跳過 "選擇音樂"
+                        if (nextIndex === 0) {
+                            nextIndex = 1; // 跳過 "選擇音樂"，播放第一首歌
+                        }
                         currentMusic = options[nextIndex].value;
                         musicSelect.value = currentMusic;
                         audio.src = currentMusic;
@@ -1262,18 +1279,10 @@
         hidePlayerBtn.addEventListener('click', function() {
             musicPlayer.classList.add('hidden');
             showPlayerBtn.style.display = 'block';
-            showMusicIcon.style.display = 'block';
         });
 
         showPlayerBtn.addEventListener('click', function() {
             musicPlayer.classList.remove('hidden');
-            showPlayerBtn.style.display = 'none';
-            showMusicIcon.style.display = 'none';
-        });
-
-        showMusicIcon.addEventListener('click', function() {
-            musicPlayer.classList.remove('hidden');
-            this.style.display = 'none';
             showPlayerBtn.style.display = 'none';
         });
 
@@ -1291,7 +1300,8 @@
         function startTimer() {
             if (isTimerRunning) return;
             isTimerRunning = true;
-            document.getElementById('timer-control').textContent = '⏸️';
+            document.getElementById('start-timer').disabled = true;
+            document.getElementById('pause-timer').disabled = false;
             setPrompts();
             timerInterval = setInterval(updateTimer, 1000);
         }
@@ -1300,7 +1310,8 @@
             if (!isTimerRunning) return;
             isTimerRunning = false;
             clearInterval(timerInterval);
-            document.getElementById('timer-control').textContent = '▶️';
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
         }
 
         function resetTimer() {
@@ -1309,7 +1320,8 @@
             remainingTime = totalTime;
             document.getElementById('timer-display').textContent = formatTime(remainingTime);
             document.getElementById('timer-message').textContent = '';
-            document.getElementById('timer-control').textContent = '▶️';
+            document.getElementById('start-timer').disabled = false;
+            document.getElementById('pause-timer').disabled = true;
             prompts = [];
             promptIndex = 0;
         }
@@ -1323,7 +1335,8 @@
                 clearInterval(timerInterval);
                 isTimerRunning = false;
                 document.getElementById('timer-message').textContent = '時間到，練習結束';
-                document.getElementById('timer-control').textContent = '▶️';
+                document.getElementById('start-timer').disabled = false;
+                document.getElementById('pause-timer').disabled = true;
             }
         }
 
@@ -1379,20 +1392,9 @@
             }
         }
 
-        document.getElementById('timer-control').addEventListener('click', function() {
-            if (isTimerRunning) {
-                pauseTimer();
-            } else {
-                startTimer();
-            }
-        });
-
-        document.getElementById('reset-timer').addEventListener('click', function() {
-            if (confirm('確定要重置計時器嗎？')) {
-                resetTimer();
-            }
-        });
-
+        document.getElementById('start-timer').addEventListener('click', startTimer);
+        document.getElementById('pause-timer').addEventListener('click', pauseTimer);
+        document.getElementById('reset-timer').addEventListener('click', resetTimer);
         document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
         document.getElementById('structure-select').addEventListener('change', resetTimer);
     </script>
