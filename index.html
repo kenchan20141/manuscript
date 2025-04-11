@@ -256,7 +256,7 @@
         }
         #music-player {
             position: fixed;
-            bottom: 50px;
+            bottom: 0;
             left: 0;
             width: 100%;
             background-color: #333;
@@ -281,7 +281,7 @@
             background: none;
             border: none;
             color: white;
-            font-size: 20px;
+            font-size: 16px;
             cursor: pointer;
             margin-right: 10px;
         }
@@ -289,9 +289,10 @@
             background: #444;
             color: white;
             border: none;
-            padding: 5px;
+            padding: 3px;
             border-radius: 3px;
             max-width: 150px;
+            font-size: 14px;
         }
         #music-player .progress {
             flex: 1;
@@ -348,14 +349,14 @@
                 font-size: 12px;
             }
         }
-        /* 倒計時面板樣式 */
         #timer-panel {
             position: fixed;
-            bottom: 0;
+            bottom: 50px;
             left: 0;
             right: 0;
             height: 50px;
-            background-color: #f0f0f0;
+            background-color: #444;
+            color: white;
             padding: 5px;
             display: flex;
             justify-content: center;
@@ -373,7 +374,8 @@
             cursor: pointer;
         }
         #timer-panel select {
-            background-color: #f9f9f9;
+            background-color: #555;
+            color: white;
         }
         #timer-panel button {
             background-color: #4CAF50;
@@ -390,7 +392,7 @@
         #timer-display {
             font-size: 16px;
             font-weight: bold;
-            color: #333;
+            color: white;
             margin: 0 10px;
             font-family: 'Courier New', Courier, monospace;
         }
@@ -399,6 +401,9 @@
             color: #e63946;
             margin-left: 10px;
             font-weight: bold;
+        }
+        #manuscript {
+            padding-bottom: 100px;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -511,8 +516,7 @@
                 <option value="三線">三線</option>
             </select>
         </div>
-        <button id="start-timer" class="action-btn">▶️</button>
-        <button id="pause-timer" class="action-btn" disabled>⏸️</button>
+        <button id="timer-control" class="action-btn">▶️</button>
         <button id="reset-timer" class="action-btn">🔄</button>
         <div id="timer-display">01:30:00</div>
         <div id="timer-message"></div>
@@ -1298,8 +1302,7 @@
         function startTimer() {
             if (isTimerRunning) return;
             isTimerRunning = true;
-            document.getElementById('start-timer').disabled = true;
-            document.getElementById('pause-timer').disabled = false;
+            document.getElementById('timer-control').textContent = '⏸️';
             setPrompts();
             timerInterval = setInterval(updateTimer, 1000);
         }
@@ -1308,8 +1311,7 @@
             if (!isTimerRunning) return;
             isTimerRunning = false;
             clearInterval(timerInterval);
-            document.getElementById('start-timer').disabled = false;
-            document.getElementById('pause-timer').disabled = true;
+            document.getElementById('timer-control').textContent = '▶️';
         }
 
         function resetTimer() {
@@ -1318,8 +1320,7 @@
             remainingTime = totalTime;
             document.getElementById('timer-display').textContent = formatTime(remainingTime);
             document.getElementById('timer-message').textContent = '';
-            document.getElementById('start-timer').disabled = false;
-            document.getElementById('pause-timer').disabled = true;
+            document.getElementById('timer-control').textContent = '▶️';
             prompts = [];
             promptIndex = 0;
         }
@@ -1332,9 +1333,8 @@
             } else {
                 clearInterval(timerInterval);
                 isTimerRunning = false;
+                document.getElementById('timer-control').textContent = '▶️';
                 document.getElementById('timer-message').textContent = '時間到，練習結束';
-                document.getElementById('start-timer').disabled = false;
-                document.getElementById('pause-timer').disabled = true;
             }
         }
 
@@ -1390,8 +1390,14 @@
             }
         }
 
-        document.getElementById('start-timer').addEventListener('click', startTimer);
-        document.getElementById('pause-timer').addEventListener('click', pauseTimer);
+        document.getElementById('timer-control').addEventListener('click', function() {
+            if (isTimerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
         document.getElementById('reset-timer').addEventListener('click', resetTimer);
         document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
         document.getElementById('structure-select').addEventListener('change', resetTimer);
