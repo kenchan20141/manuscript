@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -604,8 +603,50 @@
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                        this.value = pastedText;
-                        handleInput(this);
+                        const currentInput = this;
+                        const selectionStart = currentInput.selectionStart;
+                        const allInputs = getAllInputs();
+                        const currentIndex = allInputs.indexOf(currentInput);
+                        let insertIndex;
+                        if (selectionStart === 0) {
+                            insertIndex = currentIndex;
+                        } else if (selectionStart === 1) {
+                            insertIndex = currentIndex + 1;
+                        } else {
+                            return;
+                        }
+                        const arr = allInputs.map(input => input.value || '');
+                        const pastedChars = pastedText.split('');
+                        arr.splice(insertIndex, 0, ...pastedChars);
+                        let inputIndex = 0;
+                        for (let page = 1; page <= pageCount; page++) {
+                            const rows = getRows(page);
+                            const cols = getCols();
+                            for (let row = 1; row <= rows; row++) {
+                                for (let col = 1; col <= cols; col++) {
+                                    if (inputIndex < arr.length) {
+                                        const input = allInputs[inputIndex];
+                                        input.value = arr[inputIndex];
+                                        inputIndex++;
+                                    } else {
+                                        const input = allInputs[inputIndex];
+                                        input.value = '';
+                                        inputIndex++;
+                                    }
+                                }
+                            }
+                        }
+                        while (inputIndex < arr.length) {
+                            addPage();
+                            allInputs = getAllInputs();
+                            for (let i = inputIndex; i < allInputs.length && i < arr.length; i++) {
+                                allInputs[i].value = arr[i];
+                                inputIndex++;
+                            }
+                        }
+                        updateWordCount();
+                        const newFocusIndex = Math.min(insertIndex + pastedChars.length, allInputs.length - 1);
+                        allInputs[newFocusIndex].focus();
                     });
                     td.appendChild(input);
                     tr.appendChild(td);
@@ -701,6 +742,23 @@
                 prevInput.value = '';
                 prevInput.focus();
             }
+        }
+
+        function getAllInputs() {
+            const allInputs = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        allInputs.push(input);
+                    }
+                }
+            }
+            return allInputs;
         }
 
         addPage();
