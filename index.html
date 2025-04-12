@@ -937,63 +937,6 @@
             progressOverlay.style.display = 'none';
         });
 
-        document.addEventListener('copy', function(e) {
-            const selection = document.getSelection();
-            const allInputs = getAllInputs();
-            const selectedInputs = getSelectedInputs(selection, allInputs);
-            if (selectedInputs.length > 0) {
-                const text = selectedInputs.map(input => input.value || '').join('');
-                e.clipboardData.setData('text/plain', text);
-                e.preventDefault();
-            }
-        });
-
-        document.addEventListener('cut', function(e) {
-            const selection = document.getSelection();
-            const allInputs = getAllInputs();
-            const selectedInputs = getSelectedInputs(selection, allInputs);
-            if (selectedInputs.length > 0) {
-                const text = selectedInputs.map(input => input.value || '').join('');
-                e.clipboardData.setData('text/plain', text);
-                e.preventDefault();
-
-                const startIndex = allInputs.indexOf(selectedInputs[0]);
-                const endIndex = allInputs.indexOf(selectedInputs[selectedInputs.length - 1]);
-                for (let i = startIndex; i <= endIndex; i++) {
-                    allInputs[i].value = '';
-                }
-                for (let i = endIndex + 1; i < allInputs.length; i++) {
-                    allInputs[i - (endIndex - startIndex + 1)].value = allInputs[i].value;
-                }
-                for (let i = allInputs.length - (endIndex - startIndex + 1); i < allInputs.length; i++) {
-                    allInputs[i].value = '';
-                }
-                updateWordCount();
-                allInputs[startIndex].focus();
-            }
-        });
-
-        function getSelectedInputs(selection, allInputs) {
-            const selectedInputs = [];
-            const range = selection.getRangeAt(0);
-            const startContainer = range.startContainer.parentElement.tagName === 'INPUT' ? range.startContainer : range.startContainer.parentElement;
-            const endContainer = range.endContainer.parentElement.tagName === 'INPUT' ? range.endContainer : range.endContainer.parentElement;
-            let startIndex = -1;
-            let endIndex = -1;
-
-            for (let i = 0; i < allInputs.length; i++) {
-                if (allInputs[i] === startContainer) startIndex = i;
-                if (allInputs[i] === endContainer) endIndex = i;
-            }
-
-            if (startIndex !== -1 && endIndex !== -1) {
-                for (let i = Math.min(startIndex, endIndex); i <= Math.max(startIndex, endIndex); i++) {
-                    selectedInputs.push(allInputs[i]);
-                }
-            }
-            return selectedInputs;
-        }
-
         document.getElementById('ask-chen').addEventListener('click', function() {
             askPanel.style.display = 'block';
             toggleCategory();
