@@ -598,32 +598,40 @@
                         if (e.key === 'Backspace' && this.value === '') {
                             moveToPrevInput(this);
                             updateWordCount();
+                        } else if (e.key === 'ArrowLeft') {
+                            moveToLeftInput(this);
+                        } else if (e.key === 'ArrowRight') {
+                            moveToRightInput(this);
+                        } else if (e.key === 'ArrowUp') {
+                            moveToUpInput(this);
+                        } else if (e.key === 'ArrowDown') {
+                            moveToDownInput(this);
                         }
                     });
                     input.addEventListener('paste', function(e) {
                         e.preventDefault();
                         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
                         const currentInput = this;
-                        const selectionStart = currentInput.selectionStart;
                         const allInputs = getAllInputs();
                         const N = allInputs.length;
                         const currentIndex = allInputs.indexOf(currentInput);
-                        let insertIndex;
-                        if (selectionStart === 0) {
-                            insertIndex = currentIndex;
-                        } else if (selectionStart === 1) {
-                            insertIndex = currentIndex + 1;
-                        } else {
-                            return;
-                        }
                         const pastedChars = pastedText.split('');
+                        const M = pastedChars.length;
+                        let insertIndex = currentIndex;
+                        if (this.selectionStart === 1) insertIndex++;
+                        const remainingSpace = N - insertIndex;
+                        if (M > remainingSpace) {
+                            const pagesToAdd = Math.ceil((M - remainingSpace) / (getRows(pageCount + 1) * getCols()));
+                            for (let i = 0; i < pagesToAdd; i++) addPage();
+                            allInputs = getAllInputs();
+                        }
                         const arr = allInputs.map(input => input.value || '');
-                        const newArr = [...arr.slice(0, insertIndex), ...pastedChars, ...arr.slice(insertIndex)].slice(0, N);
-                        for (let i = 0; i < N; i++) {
-                            allInputs[i].value = newArr[i] || '';
+                        arr.splice(insertIndex, 0, ...pastedChars);
+                        for (let i = 0; i < allInputs.length; i++) {
+                            allInputs[i].value = arr[i] || '';
                         }
                         updateWordCount();
-                        const newFocusIndex = Math.min(insertIndex + pastedChars.length, N - 1);
+                        const newFocusIndex = Math.min(insertIndex + M, allInputs.length - 1);
                         allInputs[newFocusIndex].focus();
                     });
                     td.appendChild(input);
@@ -708,6 +716,57 @@
                 allInputs[allInputs.length - 1].value = '';
                 prevInput.focus();
             }
+        }
+
+        function moveToLeftInput(currentInput) {
+            const allInputs = getAllInputs();
+            const currentIndex = allInputs.indexOf(currentInput);
+            if (currentIndex > 0) {
+                allInputs[currentIndex - 1].focus();
+            }
+        }
+
+        function moveToRightInput(currentInput) {
+            const allInputs = getAllInputs();
+            const currentIndex = allInputs.indexOf(currentInput);
+            if (currentIndex < allInputs.length - 1) {
+                allInputs[currentIndex + 1].focus();
+            }
+        }
+
+        function moveToUpInput(currentInput) {
+            const currentPage = parseInt(currentInput.dataset.page);
+            const currentRow = parseInt(currentInput.dataset.row);
+            const currentCol = parseInt(currentInput.dataset.col);
+            let prevRow = currentRow - 1;
+            let prevPage = currentPage;
+            if (prevRow < 1) {
+                prevPage = currentPage - 1;
+                if (prevPage < 1) return;
+                prevRow = getRows(prevPage);
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${currentCol}"]`
+            );
+            if (prevInput) prevInput.focus();
+        }
+
+        function moveToDownInput(currentInput) {
+            const currentPage = parseInt(currentInput.dataset.page);
+            const currentRow = parseInt(currentInput.dataset.row);
+            const currentCol = parseInt(currentInput.dataset.col);
+            let nextRow = currentRow + 1;
+            let nextPage = currentPage;
+            const rows = getRows(currentPage);
+            if (nextRow > rows) {
+                nextPage = currentPage + 1;
+                if (nextPage > pageCount) return;
+                nextRow = 1;
+            }
+            const nextInput = document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${currentCol}"]`
+            );
+            if (nextInput) nextInput.focus();
         }
 
         function getAllInputs() {
@@ -877,6 +936,63 @@
             pdf.save('manuscript.pdf');
             progressOverlay.style.display = 'none';
         });
+
+        document.addEventListener('copy', function(e) {
+            const selection = document.getSelection();
+            const allInputs = getAllInputs();
+            const selectedInputs = getSelectedInputs(selection, allInputs);
+            if (selectedInputs.length > 0) {
+                const text = selectedInputs.map(input => input.value || '').join('');
+                e.clipboardData.setData('text/plain', text);
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('cut', function(e) {
+            const selection = document.getSelection();
+            const allInputs = getAllInputs();
+            const selectedInputs = getSelectedInputs(selection, allInputs);
+            if (selectedInputs.length > 0) {
+                const text = selectedInputs.map(input => input.value || '').join('');
+                e.clipboardData.setData('text/plain', text);
+                e.preventDefault();
+
+                const startIndex = allInputs.indexOf(selectedInputs[0]);
+                const endIndex = allInputs.indexOf(selectedInputs[selectedInputs.length - 1]);
+                for (let i = startIndex; i <= endIndex; i++) {
+                    allInputs[i].value = '';
+                }
+                for (let i = endIndex + 1; i < allInputs.length; i++) {
+                    allInputs[i - (endIndex - startIndex + 1)].value = allInputs[i].value;
+                }
+                for (let i = allInputs.length - (endIndex - startIndex + 1); i < allInputs.length; i++) {
+                    allInputs[i].value = '';
+                }
+                updateWordCount();
+                allInputs[startIndex].focus();
+            }
+        });
+
+        function getSelectedInputs(selection, allInputs) {
+            const selectedInputs = [];
+            const range = selection.getRangeAt(0);
+            const startContainer = range.startContainer.parentElement.tagName === 'INPUT' ? range.startContainer : range.startContainer.parentElement;
+            const endContainer = range.endContainer.parentElement.tagName === 'INPUT' ? range.endContainer : range.endContainer.parentElement;
+            let startIndex = -1;
+            let endIndex = -1;
+
+            for (let i = 0; i < allInputs.length; i++) {
+                if (allInputs[i] === startContainer) startIndex = i;
+                if (allInputs[i] === endContainer) endIndex = i;
+            }
+
+            if (startIndex !== -1 && endIndex !== -1) {
+                for (let i = Math.min(startIndex, endIndex); i <= Math.max(startIndex, endIndex); i++) {
+                    selectedInputs.push(allInputs[i]);
+                }
+            }
+            return selectedInputs;
+        }
 
         document.getElementById('ask-chen').addEventListener('click', function() {
             askPanel.style.display = 'block';
