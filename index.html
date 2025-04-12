@@ -278,14 +278,6 @@
             align-items: center;
             flex-shrink: 0;
         }
-        #music-player .controls button {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
         #music-player .controls select {
             background: #555;
             color: white;
@@ -293,6 +285,14 @@
             padding: 5px;
             border-radius: 3px;
             max-width: 150px;
+        }
+        #music-player .controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            margin-left: 10px;
         }
         #music-player .progress {
             flex: 1;
@@ -344,6 +344,10 @@
             #music-player .controls select {
                 max-width: 100px;
                 font-size: 12px;
+            }
+            #music-player .controls button {
+                font-size: 16px;
+                margin-left: 5px;
             }
             #music-player .mode select {
                 font-size: 12px;
@@ -440,9 +444,7 @@
             <option value="serious">嚴肅正經</option>
             <option value="chen">陳SIR語氣</option>
         </select>
-        <div id="outline-area">
-            <!-- Outline tables will be generated here -->
-        </div>
+        <div id="outline-area"></div>
         <textarea id="question" rows="4" placeholder="請在此輸入您的問題..."></textarea>
         <button id="submit-question">提交問題</button>
         <div id="response"></div>
@@ -511,909 +513,914 @@
     </div>
 
     <script>
-    const manuscript = document.getElementById('manuscript');
-    const wordCountDiv = document.getElementById('word-count');
-    const progressOverlay = document.getElementById('progress-overlay');
-    const progressBar = document.getElementById('progress-bar');
-    const askPanel = document.getElementById('ask-panel');
-    let pageCount = 0;
-    let totalWords = 0;
-    let isEyeProtection = false;
+        const manuscript = document.getElementById('manuscript');
+        const wordCountDiv = document.getElementById('word-count');
+        const progressOverlay = document.getElementById('progress-overlay');
+        const progressBar = document.getElementById('progress-bar');
+        const askPanel = document.getElementById('ask-panel');
+        let pageCount = 0;
+        let totalWords = 0;
+        let isEyeProtection = false;
 
-    const API_KEYS = ["sk-MoqwsgO8P9MEoCrftvdSYA"];
-    let currentApiKeyIndex = 0;
-    const API_URL = "https://chatapi.akash.network/api/v1/chat/completions";
-    const MODEL = "DeepSeek-R1";
+        const API_KEYS = ["sk-MoqwsgO8P9MEoCrftvdSYA"];
+        let currentApiKeyIndex = 0;
+        const API_URL = "https://chatapi.akash.network/api/v1/chat/completions";
+        const MODEL = "DeepSeek-R1";
 
-    const audio = document.getElementById('audio');
-    const playPauseBtn = document.getElementById('play-pause');
-    const musicSelect = document.getElementById('music-select');
-    const progressBarMusic = document.getElementById('progress-bar-music');
-    const playMode = document.getElementById('play-mode');
-    const hidePlayerBtn = document.getElementById('hide-player');
-    const showPlayerBtn = document.getElementById('show-player');
-    const musicPlayer = document.getElementById('music-player');
+        const audio = document.getElementById('audio');
+        const playPauseBtn = document.getElementById('play-pause');
+        const musicSelect = document.getElementById('music-select');
+        const progressBarMusic = document.getElementById('progress-bar-music');
+        const playMode = document.getElementById('play-mode');
+        const hidePlayerBtn = document.getElementById('hide-player');
+        const showPlayerBtn = document.getElementById('show-player');
+        const musicPlayer = document.getElementById('music-player');
 
-    let isPlaying = false;
-    let currentMusic = '';
+        let isPlaying = false;
+        let currentMusic = '';
 
-    let timerInterval;
-    let totalTime = 5400; // 90分鐘 = 5400秒
-    let remainingTime = totalTime;
-    let isTimerRunning = false;
-    let prompts = [];
-    let promptIndex = 0;
+        let timerInterval;
+        let totalTime = 5400;
+        let remainingTime = totalTime;
+        let isTimerRunning = false;
+        let prompts = [];
+        let promptIndex = 0;
 
-    function getRows(page) {
-        return page % 2 === 1 ? 15 : 20;
-    }
+        function getRows(page) {
+            return page % 2 === 1 ? 15 : 20;
+        }
 
-    function getCols() {
-        return 20;
-    }
+        function getCols() {
+            return 20;
+        }
 
-    function updateWordCount() {
-        totalWords = 0;
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            for (let row = 1; row <= rows; row++) {
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    if (input && input.value) totalWords++;
+        function updateWordCount() {
+            totalWords = 0;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        if (input && input.value) totalWords++;
+                    }
                 }
             }
+            wordCountDiv.textContent = `字數：${totalWords}`;
         }
-        wordCountDiv.textContent = `字數：${totalWords}`;
-    }
 
-    function addPage() {
-        pageCount++;
-        const rows = getRows(pageCount);
-        const cols = getCols();
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        if (isEyeProtection) pageDiv.classList.add('eye-protection');
-        pageDiv.dataset.page = pageCount;
-        const title = document.createElement('div');
-        title.className = 'title';
-        const titleInput = document.getElementById('title-input');
-        title.textContent = titleInput.value.trim() || '中文寫作';
-        pageDiv.appendChild(title);
-        const table = document.createElement('table');
-        table.className = 'grid';
-        for (let row = 1; row <= rows; row++) {
-            const tr = document.createElement('tr');
-            for (let col = 1; col <= cols; col++) {
+        function addPage() {
+            pageCount++;
+            const rows = getRows(pageCount);
+            const cols = getCols();
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            if (isEyeProtection) pageDiv.classList.add('eye-protection');
+            pageDiv.dataset.page = pageCount;
+            const title = document.createElement('div');
+            title.className = 'title';
+            const titleInput = document.getElementById('title-input');
+            title.textContent = titleInput.value.trim() || '中文寫作';
+            pageDiv.appendChild(title);
+            const table = document.createElement('table');
+            table.className = 'grid';
+            for (let row = 1; row <= rows; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 1; col <= cols; col++) {
+                    const td = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.dataset.page = pageCount;
+                    input.dataset.row = row;
+                    input.dataset.col = col;
+                    input.addEventListener('compositionstart', function() { this.isComposing = true; });
+                    input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
+                    input.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value === '') {
+                            moveToPrevInput(this);
+                            updateWordCount();
+                        }
+                    });
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                        this.value = pastedText;
+                        handleInput(this);
+                    });
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            pageDiv.appendChild(table);
+            manuscript.appendChild(pageDiv);
+            updateWordCount();
+        }
+
+        function getSubsequentInputs(startInput) {
+            const inputs = [];
+            let currentInput = startInput;
+            while (currentInput) {
+                inputs.push(currentInput);
+                currentInput = getNextInput(currentInput);
+            }
+            return inputs;
+        }
+
+        function handleInput(currentInput) {
+            const value = currentInput.value;
+            if (value.length > 0) {
+                const chars = value.split('');
+                const subsequentInputs = getSubsequentInputs(currentInput);
+                const subsequentTexts = subsequentInputs.map(input => input.value || '');
+                const allTexts = chars.concat(subsequentTexts);
+                let inputIndex = 0;
+                for (let text of allTexts) {
+                    if (inputIndex < subsequentInputs.length) {
+                        subsequentInputs[inputIndex].value = text;
+                    } else {
+                        const newInput = addNewInput();
+                        newInput.value = text;
+                        subsequentInputs.push(newInput);
+                    }
+                    inputIndex++;
+                }
+                for (let i = inputIndex; i < subsequentInputs.length; i++) {
+                    subsequentInputs[i].value = '';
+                }
+                updateWordCount();
+                const nextInputIndex = chars.length;
+                if (nextInputIndex < subsequentInputs.length) {
+                    subsequentInputs[nextInputIndex].focus();
+                } else {
+                    subsequentInputs[subsequentInputs.length - 1].focus();
+                }
+            } else {
+                updateWordCount();
+            }
+        }
+
+        function getNextInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let nextCol = currentCol + 1;
+            let nextRow = currentRow;
+            let nextPage = currentPage;
+            const cols = getCols();
+            const rows = getRows(currentPage);
+            if (nextCol > cols) {
+                nextCol = 1;
+                nextRow = currentRow + 1;
+                if (nextRow > rows) {
+                    nextRow = 1;
+                    nextPage = currentPage + 1;
+                    if (nextPage > pageCount) addPage();
+                }
+            }
+            return document.querySelector(
+                `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
+            );
+        }
+
+        function moveToPrevInput(currentInput) {
+            let currentPage = parseInt(currentInput.dataset.page);
+            let currentRow = parseInt(currentInput.dataset.row);
+            let currentCol = parseInt(currentInput.dataset.col);
+            let prevCol = currentCol - 1;
+            let prevRow = currentRow;
+            let prevPage = currentPage;
+            const cols = getCols();
+            if (prevCol < 1) {
+                prevCol = cols;
+                prevRow = currentRow - 1;
+                if (prevRow < 1) {
+                    prevRow = getRows(currentPage - 1);
+                    prevPage = currentPage - 1;
+                    if (prevPage < 1) return;
+                }
+            }
+            const prevInput = document.querySelector(
+                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
+            );
+            if (prevInput) {
+                prevInput.value = '';
+                prevInput.focus();
+            }
+        }
+
+        function addNewInput() {
+            const lastPage = document.querySelector('.page:last-child');
+            const lastRow = lastPage.querySelector('tr:last-child');
+            const lastInput = lastRow.querySelector('input:last-child');
+            let newInput;
+            if (parseInt(lastInput.dataset.col) < getCols()) {
+                const newCol = parseInt(lastInput.dataset.col) + 1;
                 const td = document.createElement('td');
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.dataset.page = pageCount;
-                input.dataset.row = row;
-                input.dataset.col = col;
-                input.addEventListener('compositionstart', function() { this.isComposing = true; });
-                input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
-                input.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
-                input.addEventListener('keydown', function(e) {
+                newInput = document.createElement('input');
+                newInput.type = 'text';
+                newInput.dataset.page = lastInput.dataset.page;
+                newInput.dataset.row = lastInput.dataset.row;
+                newInput.dataset.col = newCol;
+                newInput.addEventListener('compositionstart', function() { this.isComposing = true; });
+                newInput.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
+                newInput.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
+                newInput.addEventListener('keydown', function(e) {
                     if (e.key === 'Backspace' && this.value === '') {
                         moveToPrevInput(this);
                         updateWordCount();
                     }
                 });
-                input.addEventListener('paste', function(e) {
+                newInput.addEventListener('paste', function(e) {
                     e.preventDefault();
                     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                    insertTextAtCursor(this, pastedText);
+                    this.value = pastedText;
+                    handleInput(this);
                 });
-                td.appendChild(input);
-                tr.appendChild(td);
-            }
-            table.appendChild(tr);
-        }
-        pageDiv.appendChild(table);
-        manuscript.appendChild(pageDiv);
-        updateWordCount();
-    }
-
-    function handleInput(currentInput) {
-        const value = currentInput.value;
-        if (value.length > 1) {
-            const chars = value.split('');
-            insertTextAtCursor(currentInput, chars.join(''));
-            currentInput.value = chars[0];
-        } else if (value.length === 1) {
-            updateWordCount();
-            const nextInput = getNextInput(currentInput);
-            if (nextInput) nextInput.focus();
-        } else {
-            updateWordCount();
-        }
-    }
-
-    function insertTextAtCursor(currentInput, text) {
-        const chars = text.split('');
-        let input = currentInput;
-        for (let char of chars) {
-            if (input.value) {
-                let nextInput = getNextInput(input);
-                if (!nextInput) {
-                    addPage();
-                    nextInput = getNextInput(input);
-                }
-                insertTextAtCursor(nextInput, input.value);
-            }
-            input.value = char;
-            input = getNextInput(input);
-            if (!input) {
+                td.appendChild(newInput);
+                lastRow.appendChild(td);
+            } else {
                 addPage();
-                input = getNextInput(currentInput);
+                const newPage = document.querySelector('.page:last-child');
+                newInput = newPage.querySelector('input[data-row="1"][data-col="1"]');
             }
+            return newInput;
         }
-        updateWordCount();
-    }
 
-    function getNextInput(currentInput) {
-        let currentPage = parseInt(currentInput.dataset.page);
-        let currentRow = parseInt(currentInput.dataset.row);
-        let currentCol = parseInt(currentInput.dataset.col);
-        let nextCol = currentCol + 1;
-        let nextRow = currentRow;
-        let nextPage = currentPage;
-        const cols = getCols();
-        const rows = getRows(currentPage);
-        if (nextCol > cols) {
-            nextCol = 1;
-            nextRow = currentRow + 1;
-            if (nextRow > rows) {
-                nextRow = 1;
-                nextPage = currentPage + 1;
-                if (nextPage > pageCount) addPage();
-            }
-        }
-        return document.querySelector(
-            `input[data-page="${nextPage}"][data-row="${nextRow}"][data-col="${nextCol}"]`
-        );
-    }
+        addPage();
 
-    function moveToPrevInput(currentInput) {
-        let currentPage = parseInt(currentInput.dataset.page);
-        let currentRow = parseInt(currentInput.dataset.row);
-        let currentCol = parseInt(currentInput.dataset.col);
-        let prevCol = currentCol - 1;
-        let prevRow = currentRow;
-        let prevPage = currentPage;
-        const cols = getCols();
-        if (prevCol < 1) {
-            prevCol = cols;
-            prevRow = currentRow - 1;
-            if (prevRow < 1) {
-                prevRow = getRows(currentPage - 1);
-                prevPage = currentPage - 1;
-                if (prevPage < 1) return;
-            }
-        }
-        const prevInput = document.querySelector(
-            `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
-        );
-        if (prevInput) {
-            prevInput.value = '';
-            prevInput.focus();
-        }
-    }
+        document.getElementById('add-page').addEventListener('click', addPage);
 
-    addPage();
-
-    document.getElementById('add-page').addEventListener('click', addPage);
-
-    document.getElementById('save').addEventListener('click', function() {
-        const data = [];
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            const pageData = [];
-            for (let row = 1; row <= rows; row++) {
-                const rowData = [];
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    rowData.push(input.value);
+        document.getElementById('save').addEventListener('click', function() {
+            const data = [];
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                const pageData = [];
+                for (let row = 1; row <= rows; row++) {
+                    const rowData = [];
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        rowData.push(input.value);
+                    }
+                    pageData.push(rowData);
                 }
-                pageData.push(rowData);
+                data.push(pageData);
             }
-            data.push(pageData);
-        }
-        localStorage.setItem('manuscript', JSON.stringify(data));
-        const title = document.getElementById('title-input').value;
-        localStorage.setItem('title', title);
-        alert('文章已儲存');
-    });
+            localStorage.setItem('manuscript', JSON.stringify(data));
+            const title = document.getElementById('title-input').value;
+            localStorage.setItem('title', title);
+            alert('文章已儲存');
+        });
 
-    document.getElementById('clear').addEventListener('click', function() {
-        if (confirm('確定要清空所有文字嗎？')) {
-            manuscript.innerHTML = '';
-            pageCount = 0;
-            addPage();
-            localStorage.removeItem('manuscript');
-            localStorage.removeItem('title');
-            document.getElementById('title-input').value = '';
-            updateWordCount();
-        }
-    });
+        document.getElementById('clear').addEventListener('click', function() {
+            if (confirm('確定要清空所有文字嗎？')) {
+                manuscript.innerHTML = '';
+                pageCount = 0;
+                addPage();
+                localStorage.removeItem('manuscript');
+                localStorage.removeItem('title');
+                document.getElementById('title-input').value = '';
+                updateWordCount();
+            }
+        });
 
-    function loadManuscript() {
-        const data = JSON.parse(localStorage.getItem('manuscript'));
-        if (data) {
-            data.forEach((pageData, pageIndex) => {
-                if (pageIndex > 0) addPage();
-                const rows = getRows(pageIndex + 1);
+        function loadManuscript() {
+            const data = JSON.parse(localStorage.getItem('manuscript'));
+            if (data) {
+                data.forEach((pageData, pageIndex) => {
+                    if (pageIndex > 0) addPage();
+                    const rows = getRows(pageIndex + 1);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            const input = document.querySelector(
+                                `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            );
+                            input.value = pageData[row - 1][col - 1];
+                        }
+                    }
+                });
+                updateWordCount();
+            }
+            const savedTitle = localStorage.getItem('title');
+            if (savedTitle) {
+                document.getElementById('title-input').value = savedTitle;
+                const titles = document.querySelectorAll('.title');
+                titles.forEach(title => title.textContent = savedTitle);
+            }
+        }
+        loadManuscript();
+
+        document.getElementById('copy-all').addEventListener('click', function() {
+            let text = '';
+            let isNewParagraph = true;
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
+                const cols = getCols();
+                for (let row = 1; row <= rows; row++) {
+                    let line = '';
+                    let isEmptyFirstTwo = true;
+                    for (let col = 1; col <= cols; col++) {
+                        const input = document.querySelector(
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
+                        );
+                        const char = input.value || '';
+                        line += char;
+                        if (col <= 2 && char !== '') isEmptyFirstTwo = false;
+                    }
+                    line = line.trimEnd();
+                    if (line) {
+                        if (isNewParagraph && isEmptyFirstTwo) text += '\n';
+                        text += line + '\n';
+                        isNewParagraph = isEmptyFirstTwo;
+                    } else {
+                        text += '\n';
+                        isNewParagraph = true;
+                    }
+                }
+                if (page < pageCount) text += '\n';
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert('全文已複製到剪貼板');
+            }).catch(err => console.error('複製失敗:', err));
+        });
+
+        const eyeProtectionBtn = document.getElementById('eye-protection');
+        eyeProtectionBtn.addEventListener('click', function() {
+            isEyeProtection = !isEyeProtection;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                if (isEyeProtection) page.classList.add('eye-protection');
+                else page.classList.remove('eye-protection');
+            });
+            localStorage.setItem('eyeProtection', isEyeProtection);
+        });
+
+        if (localStorage.getItem('eyeProtection') === 'true') {
+            isEyeProtection = true;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.add('eye-protection'));
+        }
+
+        document.getElementById('export-pdf').addEventListener('click', async function() {
+            progressOverlay.style.display = 'flex';
+            progressBar.value = 0;
+            const pages = document.querySelectorAll('.page');
+            const totalPages = pages.length;
+            const originalBoxShadows = [];
+            pages.forEach(page => {
+                originalBoxShadows.push(page.style.boxShadow);
+                page.style.boxShadow = 'none';
+            });
+            const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+            for (let i = 0; i < totalPages; i++) {
+                const page = pages[i];
+                const canvas = await html2canvas(page, {
+                    scale: 2,
+                    useCORS: true,
+                    width: page.offsetWidth,
+                    height: page.offsetHeight
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pdfWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                if (i > 0) pdf.addPage([pdfWidth, imgHeight * (pdfHeight / imgHeight)]);
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                progressBar.value = ((i + 1) / totalPages) * 100;
+            }
+            pages.forEach((page, index) => page.style.boxShadow = originalBoxShadows[index]);
+            pdf.save('manuscript.pdf');
+            progressOverlay.style.display = 'none';
+        });
+
+        document.getElementById('ask-chen').addEventListener('click', function() {
+            askPanel.style.display = 'block';
+            toggleCategory();
+        });
+
+        document.getElementById('close-panel').addEventListener('click', function() {
+            askPanel.style.display = 'none';
+        });
+
+        let isDragging = false;
+        let offsetX, offsetY;
+        askPanel.addEventListener('mousedown', function(e) {
+            if (e.target === askPanel) {
+                isDragging = true;
+                offsetX = e.clientX - askPanel.getBoundingClientRect().left;
+                offsetY = e.clientY - askPanel.getBoundingClientRect().top;
+                askPanel.classList.add('drag');
+            }
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                askPanel.style.left = (e.clientX - offsetX) + 'px';
+                askPanel.style.top = (e.clientY - offsetY) + 'px';
+                askPanel.style.transform = 'none';
+            }
+        });
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+            askPanel.classList.remove('drag');
+        });
+
+        function toggleCategory() {
+            const category = document.getElementById('category').value;
+            const narrativeStructure = document.getElementById('narrative-structure');
+            if (category === '敘事抒情') {
+                narrativeStructure.style.display = 'block';
+                generateOutlineTable();
+            } else {
+                narrativeStructure.style.display = 'none';
+                generateArgumentOutlineTable();
+            }
+        }
+
+        function generateOutlineTable() {
+            const structure = document.getElementById('structure').value;
+            let parts = structure === 'fourPart' ? ['起', '承', '轉', '合'] : ['起', '一線', '二線', '三線', '合'];
+            const savedData = localStorage.getItem('narrativeOutlineData');
+            let outlineData = [];
+            if (savedData) {
+                try {
+                    outlineData = JSON.parse(savedData);
+                } catch (e) {
+                    console.error('Error parsing narrativeOutlineData:', e);
+                }
+            }
+            if (outlineData.length === 0 || outlineData.length !== parts.length) {
+                outlineData = parts.map(part => ({ part, focus: '', plot: '' }));
+            }
+            let tableHTML = `
+                <div class="table-container">
+                    <table id="narrativeOutlineTable">
+                        <tr><th>部份</th><th>結構段重點</th><th>情節大要</th></tr>`;
+            outlineData.forEach((item, index) => {
+                tableHTML += `
+                    <tr>
+                        <td>${item.part}</td>
+                        <td><textarea id="narrativeFocus${index}" rows="3">${item.focus}</textarea></td>
+                        <td><textarea id="narrativePlot${index}" rows="3">${item.plot}</textarea></td>
+                    </tr>`;
+            });
+            tableHTML += `
+                    </table>
+                </div>
+                <div class="outline-buttons">
+                    <button class="save-btn" onclick="saveNarrativeOutline()">儲存</button>
+                    <button class="clear-btn" onclick="clearNarrativeOutline()">清空</button>
+                </div>`;
+            document.getElementById('outline-area').innerHTML = tableHTML;
+        }
+
+        function generateArgumentOutlineTable() {
+            const savedData = localStorage.getItem('argumentOutlineData');
+            let outlineData = [];
+            if (savedData) {
+                try {
+                    outlineData = JSON.parse(savedData);
+                } catch (e) {
+                    console.error('Error parsing argumentOutlineData:', e);
+                }
+            }
+            if (outlineData.length === 0) {
+                outlineData = [
+                    { part: '起', point: '', evidence: '' },
+                    { part: '結構段一', point: '', evidence: '' },
+                    { part: '結構段二', point: '', evidence: '' },
+                    { part: '結構段三', point: '', evidence: '' },
+                    { part: '合', point: '', evidence: '' }
+                ];
+            }
+            let tableHTML = `
+                <div class="table-container">
+                    <table id="argumentOutlineTable">
+                        <tr><th>部份</th><th>論點</th><th>論據及論證</th></tr>`;
+            outlineData.forEach((item, index) => {
+                tableHTML += `
+                    <tr>
+                        <td>${item.part}</td>
+                        <td><textarea id="argumentPoint${index}" rows="3">${item.point}</textarea></td>
+                        <td><textarea id="argumentEvidence${index}" rows="3">${item.evidence}</textarea></td>
+                    </tr>`;
+            });
+            tableHTML += `
+                    </table>
+                </div>
+                <div class="outline-buttons">
+                    <button class="add-segment-btn" onclick="addArgumentStructureSegment()">新增結構段</button>
+                    <button class="save-btn" onclick="saveArgumentOutline()">儲存</button>
+                    <button class="clear-btn" onclick="clearArgumentOutline()">清空</button>
+                </div>`;
+            document.getElementById('outline-area').innerHTML = tableHTML;
+        }
+
+        function addArgumentStructureSegment() {
+            const table = document.getElementById('argumentOutlineTable');
+            const rows = table.rows;
+            let structureSegmentCount = 0;
+            for (let i = 1; i < rows.length - 1; i++) {
+                if (rows[i].cells[0].innerText.startsWith('結構段')) {
+                    structureSegmentCount++;
+                }
+            }
+            const newSegmentNumber = structureSegmentCount + 1;
+            const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+            const segmentName = `結構段${chineseNumbers[newSegmentNumber - 1] || newSegmentNumber}`;
+            const newRowIndex = rows.length - 1;
+            const newRow = table.insertRow(newRowIndex);
+            const cell1 = newRow.insertCell(0);
+            const cell2 = newRow.insertCell(1);
+            const cell3 = newRow.insertCell(2);
+            cell1.innerText = segmentName;
+            cell2.innerHTML = `<textarea id="argumentPoint${newRowIndex - 1}" rows="3"></textarea>`;
+            cell3.innerHTML = `<textarea id="argumentEvidence${newRowIndex - 1}" rows="3"></textarea>`;
+        }
+
+        function saveNarrativeOutline() {
+            const table = document.getElementById('narrativeOutlineTable');
+            const rows = table.rows;
+            const outlineData = [];
+            for (let i = 1; i < rows.length; i++) {
+                const part = rows[i].cells[0].innerText;
+                const focusTextarea = rows[i].cells[1].querySelector('textarea');
+                const plotTextarea = rows[i].cells[2].querySelector('textarea');
+                const focus = focusTextarea ? focusTextarea.value.trim() : '';
+                const plot = plotTextarea ? plotTextarea.value.trim() : '';
+                outlineData.push({ part, focus, plot });
+            }
+            localStorage.setItem('narrativeOutlineData', JSON.stringify(outlineData));
+            alert('大綱已儲存');
+        }
+
+        function clearNarrativeOutline() {
+            if (confirm('確定要清空大綱嗎？')) {
+                const table = document.getElementById('narrativeOutlineTable');
+                const rows = table.rows;
+                for (let i = 1; i < rows.length; i++) {
+                    document.getElementById(`narrativeFocus${i - 1}`).value = '';
+                    document.getElementById(`narrativePlot${i - 1}`).value = '';
+                }
+                localStorage.removeItem('narrativeOutlineData');
+            }
+        }
+
+        function saveArgumentOutline() {
+            const table = document.getElementById('argumentOutlineTable');
+            const rows = table.rows;
+            const outlineData = [];
+            for (let i = 1; i < rows.length; i++) {
+                const part = rows[i].cells[0].innerText;
+                const pointTextarea = rows[i].cells[1].querySelector('textarea');
+                const evidenceTextarea = rows[i].cells[2].querySelector('textarea');
+                const point = pointTextarea ? pointTextarea.value.trim() : '';
+                const evidence = evidenceTextarea ? evidenceTextarea.value.trim() : '';
+                outlineData.push({ part, point, evidence });
+            }
+            localStorage.setItem('argumentOutlineData', JSON.stringify(outlineData));
+            alert('大綱已儲存');
+        }
+
+        function clearArgumentOutline() {
+            if (confirm('確定要清空大綱嗎？')) {
+                const table = document.getElementById('argumentOutlineTable');
+                const rows = table.rows;
+                for (let i = 1; i < rows.length; i++) {
+                    document.getElementById(`argumentPoint${i - 1}`).value = '';
+                    document.getElementById(`argumentEvidence${i - 1}`).value = '';
+                }
+                localStorage.removeItem('argumentOutlineData');
+            }
+        }
+
+        document.getElementById('submit-question').addEventListener('click', async function() {
+            const category = document.getElementById('category').value;
+            const tone = document.getElementById('tone').value;
+            const question = document.getElementById('question').value.trim();
+            if (!question) {
+                alert('請輸入您的問題');
+                return;
+            }
+            const manuscriptContent = getManuscriptContent();
+            const title = getTitleFromInput();
+            let outlineData = '';
+            if (category === '敘事抒情') outlineData = getNarrativeOutlineData();
+            else if (category === '議論') outlineData = getArgumentOutlineData();
+            let prompt = `學生正在撰寫一篇${category}文章，題目是「${title}」。以下是學生已寫的內容：\n${manuscriptContent}\n\n以下是大綱內容：\n${outlineData}\n\n學生的問題是：${question}\n\n請根據學生的問題和文章內容，提供簡潔的回應，不超過100字。`;
+            if (category === '敘事抒情') {
+                prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
+            } else if (category === '議論') {
+                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
+            }
+            if (tone === 'chen') prompt += `\n\n請用陳SIR的語氣回應，輕鬆隨意，多用EMOJI，偶爾使用網絡用語。`;
+            else prompt += `\n\n請用嚴肅正經的語氣回應。`;
+            prompt += `\n\n請直接提供最終答案，不包含任何思考過程或標籤。`;
+            document.getElementById('response').innerHTML = '陳SIR正在思考...';
+            document.getElementById('submit-question').disabled = true;
+            try {
+                const response = await callAPI(prompt);
+                document.getElementById('response').innerHTML = response;
+            } catch (error) {
+                console.error('提交問題時出錯:', error);
+                if (error.message === '所有 API 密鑰均無法使用') {
+                    alert('今日 API 調用次數已用完或API無法連接，請明天再試');
+                } else {
+                    alert('回應生成失敗，請重試');
+                }
+                document.getElementById('response').innerHTML = '';
+            } finally {
+                document.getElementById('submit-question').disabled = false;
+            }
+        });
+
+        function getNarrativeOutlineData() {
+            const table = document.getElementById('narrativeOutlineTable');
+            if (!table) return '';
+            const rows = table.rows;
+            let data = '';
+            for (let i = 1; i < rows.length; i++) {
+                const part = rows[i].cells[0].innerText;
+                const focus = rows[i].cells[1].querySelector('textarea').value.trim();
+                const plot = rows[i].cells[2].querySelector('textarea').value.trim();
+                data += `${part} - 結構段重點: ${focus}, 情節大要: ${plot}\n`;
+            }
+            return data;
+        }
+
+        function getArgumentOutlineData() {
+            const table = document.getElementById('argumentOutlineTable');
+            if (!table) return '';
+            const rows = table.rows;
+            let data = '';
+            for (let i = 1; i < rows.length; i++) {
+                const part = rows[i].cells[0].innerText;
+                const point = rows[i].cells[1].querySelector('textarea').value.trim();
+                const evidence = rows[i].cells[2].querySelector('textarea').value.trim();
+                data += `${part} - 論點: ${point}, 論據及論證: ${evidence}\n`;
+            }
+            return data;
+        }
+
+        function getManuscriptContent() {
+            let content = '';
+            for (let page = 1; page <= pageCount; page++) {
+                const rows = getRows(page);
                 const cols = getCols();
                 for (let row = 1; row <= rows; row++) {
                     for (let col = 1; col <= cols; col++) {
                         const input = document.querySelector(
-                            `input[data-page="${pageIndex + 1}"][data-row="${row}"][data-col="${col}"]`
+                            `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
                         );
-                        input.value = pageData[row - 1][col - 1];
+                        content += input.value || ' ';
                     }
-                }
-            });
-            updateWordCount();
-        }
-        const savedTitle = localStorage.getItem('title');
-        if (savedTitle) {
-            document.getElementById('title-input').value = savedTitle;
-            const titles = document.querySelectorAll('.title');
-            titles.forEach(title => {
-                title.textContent = savedTitle;
-            });
-        }
-    }
-    loadManuscript();
-
-    document.getElementById('copy-all').addEventListener('click', function() {
-        let text = '';
-        let isNewParagraph = true;
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            for (let row = 1; row <= rows; row++) {
-                let line = '';
-                let isEmptyFirstTwo = true;
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    const char = input.value || '';
-                    line += char;
-                    if (col <= 2 && char !== '') isEmptyFirstTwo = false;
-                }
-                line = line.trimEnd();
-                if (line) {
-                    if (isNewParagraph && isEmptyFirstTwo) text += '\n';
-                    text += line + '\n';
-                    isNewParagraph = isEmptyFirstTwo;
-                } else {
-                    text += '\n';
-                    isNewParagraph = true;
-                }
-            }
-            if (page < pageCount) text += '\n';
-        }
-        navigator.clipboard.writeText(text).then(() => {
-            alert('全文已複製到剪貼板');
-        }).catch(err => {
-            console.error('複製失敗:', err);
-        });
-    });
-
-    const eyeProtectionBtn = document.getElementById('eye-protection');
-    eyeProtectionBtn.addEventListener('click', function() {
-        isEyeProtection = !isEyeProtection;
-        const pages = document.querySelectorAll('.page');
-        pages.forEach(page => {
-            if (isEyeProtection) page.classList.add('eye-protection');
-            else page.classList.remove('eye-protection');
-        });
-        localStorage.setItem('eyeProtection', isEyeProtection);
-    });
-
-    if (localStorage.getItem('eyeProtection') === 'true') {
-        isEyeProtection = true;
-        const pages = document.querySelectorAll('.page');
-        pages.forEach(page => page.classList.add('eye-protection'));
-    }
-
-    document.getElementById('export-pdf').addEventListener('click', async function() {
-        progressOverlay.style.display = 'flex';
-        progressBar.value = 0;
-        const pages = document.querySelectorAll('.page');
-        const totalPages = pages.length;
-        const originalBoxShadows = [];
-        pages.forEach(page => {
-            originalBoxShadows.push(page.style.boxShadow);
-            page.style.boxShadow = 'none';
-        });
-        const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-        for (let i = 0; i < totalPages; i++) {
-            const page = pages[i];
-            const canvas = await html2canvas(page, {
-                scale: 2,
-                useCORS: true,
-                width: page.offsetWidth,
-                height: page.offsetHeight
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            if (i > 0) pdf.addPage([pdfWidth, imgHeight * (pdfHeight / imgHeight)]);
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            progressBar.value = ((i + 1) / totalPages) * 100;
-        }
-        pages.forEach((page, index) => page.style.boxShadow = originalBoxShadows[index]);
-        pdf.save('manuscript.pdf');
-        progressOverlay.style.display = 'none';
-    });
-
-    document.getElementById('ask-chen').addEventListener('click', function() {
-        askPanel.style.display = 'block';
-        toggleCategory();
-    });
-
-    document.getElementById('close-panel').addEventListener('click', function() {
-        askPanel.style.display = 'none';
-    });
-
-    let isDragging = false;
-    let offsetX, offsetY;
-    askPanel.addEventListener('mousedown', function(e) {
-        if (e.target === askPanel) {
-            isDragging = true;
-            offsetX = e.clientX - askPanel.getBoundingClientRect().left;
-            offsetY = e.clientY - askPanel.getBoundingClientRect().top;
-            askPanel.classList.add('drag');
-        }
-    });
-    document.addEventListener('mousemove', function(e) {
-        if (isDragging) {
-            askPanel.style.left = (e.clientX - offsetX) + 'px';
-            askPanel.style.top = (e.clientY - offsetY) + 'px';
-            askPanel.style.transform = 'none';
-        }
-    });
-    document.addEventListener('mouseup', function() {
-        isDragging = false;
-        askPanel.classList.remove('drag');
-    });
-
-    function toggleCategory() {
-        const category = document.getElementById('category').value;
-        const narrativeStructure = document.getElementById('narrative-structure');
-        if (category === '敘事抒情') {
-            narrativeStructure.style.display = 'block';
-            generateOutlineTable();
-        } else {
-            narrativeStructure.style.display = 'none';
-            generateArgumentOutlineTable();
-        }
-    }
-
-    function generateOutlineTable() {
-        const structure = document.getElementById('structure').value;
-        let parts = structure === 'fourPart' ? ['起', '承', '轉', '合'] : ['起', '一線', '二線', '三線', '合'];
-        const savedData = localStorage.getItem('narrativeOutlineData');
-        let outlineData = [];
-        if (savedData) {
-            try {
-                outlineData = JSON.parse(savedData);
-            } catch (e) {
-                console.error('Error parsing narrativeOutlineData:', e);
-            }
-        }
-        if (outlineData.length === 0 || outlineData.length !== parts.length) {
-            outlineData = parts.map(part => ({ part, focus: '', plot: '' }));
-        }
-        let tableHTML = `
-            <div class="table-container">
-                <table id="narrativeOutlineTable">
-                    <tr><th>部份</th><th>結構段重點</th><th>情節大要</th></tr>`;
-        outlineData.forEach((item, index) => {
-            tableHTML += `
-                <tr>
-                    <td>${item.part}</td>
-                    <td><textarea id="narrativeFocus${index}" rows="3">${item.focus}</textarea></td>
-                    <td><textarea id="narrativePlot${index}" rows="3">${item.plot}</textarea></td>
-                </tr>`;
-        });
-        tableHTML += `
-                </table>
-            </div>
-            <div class="outline-buttons">
-                <button class="save-btn" onclick="saveNarrativeOutline()">儲存</button>
-                <button class="clear-btn" onclick="clearNarrativeOutline()">清空</button>
-            </div>`;
-        document.getElementById('outline-area').innerHTML = tableHTML;
-    }
-
-    function generateArgumentOutlineTable() {
-        const savedData = localStorage.getItem('argumentOutlineData');
-        let outlineData = [];
-        if (savedData) {
-            try {
-                outlineData = JSON.parse(savedData);
-            } catch (e) {
-                console.error('Error parsing argumentOutlineData:', e);
-            }
-        }
-        if (outlineData.length === 0) {
-            outlineData = [
-                { part: '起', point: '', evidence: '' },
-                { part: '結構段一', point: '', evidence: '' },
-                { part: '結構段二', point: '', evidence: '' },
-                { part: '結構段三', point: '', evidence: '' },
-                { part: '合', point: '', evidence: '' }
-            ];
-        }
-        let tableHTML = `
-            <div class="table-container">
-                <table id="argumentOutlineTable">
-                    <tr><th>部份</th><th>論點</th><th>論據及論證</th></tr>`;
-        outlineData.forEach((item, index) => {
-            tableHTML += `
-                <tr>
-                    <td>${item.part}</td>
-                    <td><textarea id="argumentPoint${index}" rows="3">${item.point}</textarea></td>
-                    <td><textarea id="argumentEvidence${index}" rows="3">${item.evidence}</textarea></td>
-                </tr>`;
-        });
-        tableHTML += `
-                </table>
-            </div>
-            <div class="outline-buttons">
-                <button class="add-segment-btn" onclick="addArgumentStructureSegment()">新增結構段</button>
-                <button class="save-btn" onclick="saveArgumentOutline()">儲存</button>
-                <button class="clear-btn" onclick="clearArgumentOutline()">清空</button>
-            </div>`;
-        document.getElementById('outline-area').innerHTML = tableHTML;
-    }
-
-    function addArgumentStructureSegment() {
-        const table = document.getElementById('argumentOutlineTable');
-        const rows = table.rows;
-        let structureSegmentCount = 0;
-        for (let i = 1; i < rows.length - 1; i++) {
-            if (rows[i].cells[0].innerText.startsWith('結構段')) {
-                structureSegmentCount++;
-            }
-        }
-        const newSegmentNumber = structureSegmentCount + 1;
-        const chineseNumbers = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-        const segmentName = `結構段${chineseNumbers[newSegmentNumber - 1] || newSegmentNumber}`;
-        const newRowIndex = rows.length - 1;
-        const newRow = table.insertRow(newRowIndex);
-        const cell1 = newRow.insertCell(0);
-        const cell2 = newRow.insertCell(1);
-        const cell3 = newRow.insertCell(2);
-        cell1.innerText = segmentName;
-        cell2.innerHTML = `<textarea id="argumentPoint${newRowIndex - 1}" rows="3"></textarea>`;
-        cell3.innerHTML = `<textarea id="argumentEvidence${newRowIndex - 1}" rows="3"></textarea>`;
-    }
-
-    function saveNarrativeOutline() {
-        const table = document.getElementById('narrativeOutlineTable');
-        const rows = table.rows;
-        const outlineData = [];
-        for (let i = 1; i < rows.length; i++) {
-            const part = rows[i].cells[0].innerText;
-            const focusTextarea = rows[i].cells[1].querySelector('textarea');
-            const plotTextarea = rows[i].cells[2].querySelector('textarea');
-            const focus = focusTextarea ? focusTextarea.value.trim() : '';
-            const plot = plotTextarea ? plotTextarea.value.trim() : '';
-            outlineData.push({ part, focus, plot });
-        }
-        localStorage.setItem('narrativeOutlineData', JSON.stringify(outlineData));
-        alert('大綱已儲存');
-    }
-
-    function clearNarrativeOutline() {
-        if (confirm('確定要清空大綱嗎？')) {
-            const table = document.getElementById('narrativeOutlineTable');
-            const rows = table.rows;
-            for (let i = 1; i < rows.length; i++) {
-                document.getElementById(`narrativeFocus${i - 1}`).value = '';
-                document.getElementById(`narrativePlot${i - 1}`).value = '';
-            }
-            localStorage.removeItem('narrativeOutlineData');
-        }
-    }
-
-    function saveArgumentOutline() {
-        const table = document.getElementById('argumentOutlineTable');
-        const rows = table.rows;
-        const outlineData = [];
-        for (let i = 1; i < rows.length; i++) {
-            const part = rows[i].cells[0].innerText;
-            const pointTextarea = rows[i].cells[1].querySelector('textarea');
-            const evidenceTextarea = rows[i].cells[2].querySelector('textarea');
-            const point = pointTextarea ? pointTextarea.value.trim() : '';
-            const evidence = evidenceTextarea ? evidenceTextarea.value.trim() : '';
-            outlineData.push({ part, point, evidence });
-        }
-        localStorage.setItem('argumentOutlineData', JSON.stringify(outlineData));
-        alert('大綱已儲存');
-    }
-
-    function clearArgumentOutline() {
-        if (confirm('確定要清空大綱嗎？')) {
-            const table = document.getElementById('argumentOutlineTable');
-            const rows = table.rows;
-            for (let i = 1; i < rows.length; i++) {
-                document.getElementById(`argumentPoint${i - 1}`).value = '';
-                document.getElementById(`argumentEvidence${i - 1}`).value = '';
-            }
-            localStorage.removeItem('argumentOutlineData');
-        }
-    }
-
-    document.getElementById('submit-question').addEventListener('click', async function() {
-        const category = document.getElementById('category').value;
-        const tone = document.getElementById('tone').value;
-        const question = document.getElementById('question').value.trim();
-        if (!question) {
-            alert('請輸入您的問題');
-            return;
-        }
-
-        const manuscriptContent = getManuscriptContent();
-        const title = getTitleFromInput();
-
-        let outlineData = '';
-        if (category === '敘事抒情') {
-            outlineData = getNarrativeOutlineData();
-        } else if (category === '議論') {
-            outlineData = getArgumentOutlineData();
-        }
-
-        let prompt = `學生正在撰寫一篇${category}文章，題目是「${title}」。以下是學生已寫的內容：\n${manuscriptContent}\n\n以下是大綱內容：\n${outlineData}\n\n學生的問題是：${question}\n\n請根據學生的問題和文章內容，提供簡潔的回應，不超過100字。`;
-
-        if (category === '敘事抒情') {
-            prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
-        } else if (category === '議論') {
-            prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
-        }
-
-        if (tone === 'chen') {
-            prompt += `\n\n請用陳SIR的語氣回應，輕鬆隨意，多用EMOJI，偶爾使用網絡用語。`;
-        } else {
-            prompt += `\n\n請用嚴肅正經的語氣回應。`;
-        }
-
-        prompt += `\n\n請直接提供最終答案，不包含任何思考過程或標籤。`;
-
-        document.getElementById('response').innerHTML = '陳SIR正在思考...';
-        document.getElementById('submit-question').disabled = true;
-
-        try {
-            const response = await callAPI(prompt);
-            document.getElementById('response').innerHTML = response;
-        } catch (error) {
-            console.error('提交問題時出錯:', error);
-            if (error.message === '所有 API 密鑰均無法使用') {
-                alert('今日 API 調用次數已用完或API無法連接，請明天再試');
-            } else {
-                alert('回應生成失敗，請重試');
-            }
-            document.getElementById('response').innerHTML = '';
-        } finally {
-            document.getElementById('submit-question').disabled = false;
-        }
-    });
-
-    function getNarrativeOutlineData() {
-        const table = document.getElementById('narrativeOutlineTable');
-        if (!table) return '';
-        const rows = table.rows;
-        let data = '';
-        for (let i = 1; i < rows.length; i++) {
-            const part = rows[i].cells[0].innerText;
-            const focus = rows[i].cells[1].querySelector('textarea').value.trim();
-            const plot = rows[i].cells[2].querySelector('textarea').value.trim();
-            data += `${part} - 結構段重點: ${focus}, 情節大要: ${plot}\n`;
-        }
-        return data;
-    }
-
-    function getArgumentOutlineData() {
-        const table = document.getElementById('argumentOutlineTable');
-        if (!table) return '';
-        const rows = table.rows;
-        let data = '';
-        for (let i = 1; i < rows.length; i++) {
-            const part = rows[i].cells antennas[0].innerText;
-            const point = rows[i].cells[1].querySelector('textarea').value.trim();
-            const evidence = rows[i].cells[2].querySelector('textarea').value.trim();
-            data += `${part} - 論點: ${point}, 論據及論證: ${evidence}\n`;
-        }
-        return data;
-    }
-
-    function getManuscriptContent() {
-        let content = '';
-        for (let page = 1; page <= pageCount; page++) {
-            const rows = getRows(page);
-            const cols = getCols();
-            for (let row = 1; row <= rows; row++) {
-                for (let col = 1; col <= cols; col++) {
-                    const input = document.querySelector(
-                        `input[data-page="${page}"][data-row="${row}"][data-col="${col}"]`
-                    );
-                    content += input.value || ' ';
+                    content += '\n';
                 }
                 content += '\n';
             }
-            content += '\n';
+            return content.trim();
         }
-        return content.trim();
-    }
 
-    function getTitleFromInput() {
-        const titleInput = document.getElementById('title-input');
-        return titleInput.value.trim() || '無題';
-    }
+        function getTitleFromInput() {
+            const titleInput = document.getElementById('title-input');
+            return titleInput.value.trim() || '無題';
+        }
 
-    async function callAPI(prompt) {
-        let attempts = 0;
-        const maxAttempts = API_KEYS.length;
-        while (attempts < maxAttempts) {
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${API_KEYS[currentApiKeyIndex]}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: [{ role: 'user', content: prompt }]
-                    })
-                });
-
-                if (response.status === 429) {
+        async function callAPI(prompt) {
+            let attempts = 0;
+            const maxAttempts = API_KEYS.length;
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${API_KEYS[currentApiKeyIndex]}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: MODEL,
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+                    if (response.status === 429) {
+                        currentApiKeyIndex = (currentApiKeyIndex + 1) % API_KEYS.length;
+                        attempts++;
+                        continue;
+                    }
+                    if (!response.ok) throw new Error(`API 調用失敗: ${response.statusText}`);
+                    const data = await response.json();
+                    let content = data.choices[0].message.content.trim();
+                    content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+                    return content;
+                } catch (error) {
+                    console.error(error);
                     currentApiKeyIndex = (currentApiKeyIndex + 1) % API_KEYS.length;
                     attempts++;
-                    continue;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`API 調用失敗: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                let content = data.choices[0].message.content.trim();
-                content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                return content;
-            } catch (error) {
-                console.error(error);
-                currentApiKeyIndex = (currentApiKeyIndex + 1) % API_KEYS.length;
-                attempts++;
-                if (attempts >= maxAttempts) {
-                    throw new Error('所有 API 密鑰均無法使用');
+                    if (attempts >= maxAttempts) throw new Error('所有 API 密鑰均無法使用');
                 }
             }
         }
-    }
 
-    document.getElementById('title-input').addEventListener('input', function() {
-        const newTitle = this.value.trim() || '中文寫作';
-        const titles = document.querySelectorAll('.title');
-        titles.forEach(title => {
-            title.textContent = newTitle;
+        document.getElementById('title-input').addEventListener('input', function() {
+            const newTitle = this.value.trim() || '中文寫作';
+            const titles = document.querySelectorAll('.title');
+            titles.forEach(title => title.textContent = newTitle);
         });
-    });
 
-    musicSelect.addEventListener('change', function() {
-        const selectedMusic = this.value;
-        if (selectedMusic) {
-            audio.src = selectedMusic;
-            audio.load();
-            currentMusic = selectedMusic;
-            audio.play().then(() => {
-                isPlaying = true;
-                playPauseBtn.textContent = '⏸️';
-            }).catch(error => {
-                console.error('自動播放失敗:', error);
-            });
-        }
-    });
-
-    audio.addEventListener('canplay', function() {
-        if (isPlaying) {
-            audio.play();
-        }
-    });
-
-    playPauseBtn.addEventListener('click', function() {
-        if (isPlaying) {
-            audio.pause();
-            playPauseBtn.textContent = '▶️';
-        } else {
-            if (currentMusic) {
-                audio.play();
-                playPauseBtn.textContent = '⏸️';
-            } else {
-                alert('請先選擇音樂');
+        musicSelect.addEventListener('change', function() {
+            const selectedMusic = this.value;
+            if (selectedMusic) {
+                audio.src = selectedMusic;
+                audio.load();
+                currentMusic = selectedMusic;
+                audio.play().then(() => {
+                    isPlaying = true;
+                    playPauseBtn.textContent = '⏸️';
+                }).catch(error => console.error('自動播放失敗:', error));
             }
-        }
-        isPlaying = !isPlaying;
-    });
+        });
 
-    audio.addEventListener('timeupdate', function() {
-        if (!audio.duration) return;
-        const progress = (audio.currentTime / audio.duration) * 100;
-        progressBarMusic.value = progress;
-    });
+        audio.addEventListener('canplay', function() {
+            if (isPlaying) audio.play();
+        });
 
-    progressBarMusic.addEventListener('input', function() {
-        const time = (this.value / 100) * audio.duration;
-        audio.currentTime = time;
-    });
-
-    audio.addEventListener('ended', function() {
-        if (playMode.value === 'loop') {
-            audio.currentTime = 0;
-            audio.play();
-        } else if (playMode.value === 'next') {
-            const options = musicSelect.options;
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].value === currentMusic) {
-                    let nextIndex = (i + 1) % options.length;
-                    if (nextIndex === 0) {
-                        nextIndex = 1;
-                    }
-                    currentMusic = options[nextIndex].value;
-                    musicSelect.value = currentMusic;
-                    audio.src = currentMusic;
-                    audio.load();
+        playPauseBtn.addEventListener('click', function() {
+            if (isPlaying) {
+                audio.pause();
+                playPauseBtn.textContent = '▶️';
+            } else {
+                if (currentMusic) {
                     audio.play();
-                    break;
+                    playPauseBtn.textContent = '⏸️';
+                } else {
+                    alert('請先選擇音樂');
                 }
             }
+            isPlaying = !isPlaying;
+        });
+
+        audio.addEventListener('timeupdate', function() {
+            if (!audio.duration) return;
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBarMusic.value = progress;
+        });
+
+        progressBarMusic.addEventListener('input', function() {
+            const time = (this.value / 100) * audio.duration;
+            audio.currentTime = time;
+        });
+
+        audio.addEventListener('ended', function() {
+            if (playMode.value === 'loop') {
+                audio.currentTime = 0;
+                audio.play();
+            } else if (playMode.value === 'next') {
+                const options = musicSelect.options;
+                for (let i = 0; i < options.length; i++) {
+                    if (options[i].value === currentMusic) {
+                        let nextIndex = (i + 1) % options.length;
+                        if (nextIndex === 0) nextIndex = 1;
+                        currentMusic = options[nextIndex].value;
+                        musicSelect.value = currentMusic;
+                        audio.src = currentMusic;
+                        audio.load();
+                        audio.play();
+                        break;
+                    }
+                }
+            }
+        });
+
+        hidePlayerBtn.addEventListener('click', function() {
+            musicPlayer.classList.add('hidden');
+            showPlayerBtn.style.display = 'block';
+        });
+
+        showPlayerBtn.addEventListener('click', function() {
+            musicPlayer.classList.remove('hidden');
+            showPlayerBtn.style.display = 'none';
+        });
+
+        function toggleStructureSelect() {
+            const genre = document.getElementById('genre-select').value;
+            const structureDiv = document.getElementById('structure-select-div');
+            if (genre === '敘事抒情') structureDiv.style.display = 'inline-block';
+            else structureDiv.style.display = 'none';
+            resetTimer();
         }
-    });
 
-    hidePlayerBtn.addEventListener('click', function() {
-        musicPlayer.classList.add('hidden');
-        showPlayerBtn.style.display = 'block';
-    });
-
-    showPlayerBtn.addEventListener('click', function() {
-        musicPlayer.classList.remove('hidden');
-        showPlayerBtn.style.display = 'none';
-    });
-
-    function toggleStructureSelect() {
-        const genre = document.getElementById('genre-select').value;
-        const structureDiv = document.getElementById('structure-select-div');
-        if (genre === '敘事抒情') {
-            structureDiv.style.display = 'inline-block';
-        } else {
-            structureDiv.style.display = 'none';
+        function toggleTimer() {
+            if (isTimerRunning) pauseTimer();
+            else startTimer();
         }
-        resetTimer();
-    }
 
-    function toggleTimer() {
-        if (isTimerRunning) {
-            pauseTimer();
-        } else {
-            startTimer();
+        function startTimer() {
+            if (isTimerRunning) return;
+            isTimerRunning = true;
+            document.getElementById('toggle-timer').textContent = '⏸️';
+            document.getElementById('genre-select').disabled = true;
+            document.getElementById('structure-select').disabled = true;
+            setPrompts();
+            timerInterval = setInterval(updateTimer, 1000);
         }
-    }
 
-    function startTimer() {
-        if (isTimerRunning) return;
-        isTimerRunning = true;
-        document.getElementById('toggle-timer').textContent = '⏸️';
-        document.getElementById('genre-select').disabled = true;
-        document.getElementById('structure-select').disabled = true;
-        setPrompts();
-        timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    function pauseTimer() {
-        if (!isTimerRunning) return;
-        isTimerRunning = false;
-        clearInterval(timerInterval);
-        document.getElementById('toggle-timer').textContent = '▶️';
-    }
-
-    function resetTimer() {
-        if (confirm('確定要重置計時器嗎？')) {
-            clearInterval(timerInterval);
+        function pauseTimer() {
+            if (!isTimerRunning) return;
             isTimerRunning = false;
-            remainingTime = totalTime;
-            document.getElementById('timer-display').textContent = formatTime(remainingTime);
-            document.getElementById('timer-message').textContent = '';
+            clearInterval(timerInterval);
             document.getElementById('toggle-timer').textContent = '▶️';
-            document.getElementById('genre-select').disabled = false;
-            document.getElementById('structure-select').disabled = false;
+        }
+
+        function resetTimer() {
+            if (confirm('確定要重置計時器嗎？')) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                remainingTime = totalTime;
+                document.getElementById('timer-display').textContent = formatTime(remainingTime);
+                document.getElementById('timer-message').textContent = '';
+                document.getElementById('toggle-timer').textContent = '▶️';
+                document.getElementById('genre-select').disabled = false;
+                document.getElementById('structure-select').disabled = false;
+                prompts = [];
+                promptIndex = 0;
+            }
+        }
+
+        function updateTimer() {
+            if (remainingTime > 0) {
+                remainingTime--;
+                document.getElementById('timer-display').textContent = formatTime(remainingTime);
+                checkPrompts();
+            } else {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+                document.getElementById('timer-message').textContent = '時間到，練習結束';
+                document.getElementById('toggle-timer').textContent = '▶️';
+            }
+        }
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function setPrompts() {
+            const genre = document.getElementById('genre-select').value;
+            const structure = document.getElementById('structure-select').value;
             prompts = [];
-            promptIndex = 0;
-        }
-    }
-
-    function updateTimer() {
-        if (remainingTime > 0) {
-            remainingTime--;
-            document.getElementById('timer-display').textContent = formatTime(remainingTime);
-            checkPrompts();
-        } else {
-            clearInterval(timerInterval);
-            isTimerRunning = false;
-            document.getElementById('timer-message').textContent = '時間到，練習結束';
-            document.getElementById('toggle-timer').textContent = '▶️';
-        }
-    }
-
-    function formatTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    function setPrompts() {
-        const genre = document.getElementById('genre-select').value;
-        const structure = document.getElementById('structure-select').value;
-        prompts = [];
-
-        if (genre === '敘事抒情') {
-            if (structure === '起承轉合') {
-                prompts = [
-                    { time: totalTime - 900, message: '應已完成大綱' },
-                    { time: totalTime - 1800, message: '應已完成「起」' },
-                    { time: totalTime - 3300, message: '應已完成「承」' },
-                    { time: totalTime - 4800, message: '應已完成「轉」' },
-                    { time: 0, message: '時間到，練習結束' }
-                ];
-            } else if (structure === '三線') {
+            if (genre === '敘事抒情') {
+                if (structure === '起承轉合') {
+                    prompts = [
+                        { time: totalTime - 900, message: '應已完成大綱' },
+                        { time: totalTime - 1800, message: '應已完成「起」' },
+                        { time: totalTime - 3300, message: '應已完成「承」' },
+                        { time: totalTime - 4800, message: '應已完成「轉」' },
+                        { time: 0, message: '時間到，練習結束' }
+                    ];
+                } else if (structure === '三線') {
+                    prompts = [
+                        { time: totalTime - 900, message: '應已完成大綱' },
+                        { time: totalTime - 1500, message: '應已完成「起」' },
+                        { time: totalTime - 2580, message: '應已完成「一線」' },
+                        { time: totalTime - 3660, message: '應已完成「二線」' },
+                        { time: totalTime - 4740, message: '應已完成「三線」' },
+                        { time: 0, message: '時間到，練習結束' }
+                    ];
+                }
+            } else if (genre === '議論') {
                 prompts = [
                     { time: totalTime - 900, message: '應已完成大綱' },
                     { time: totalTime - 1500, message: '應已完成「起」' },
-                    { time: totalTime - 2580, message: '應已完成「一線」' },
-                    { time: totalTime - 3660, message: '應已完成「二線」' },
-                    { time: totalTime - 4740, message: '應已完成「三線」' },
+                    { time: totalTime - 2100, message: '應已完成「結構段一」' },
+                    { time: totalTime - 3000, message: '應已完成「結構段二」' },
+                    { time: totalTime - 3900, message: '應已完成「結構段三」' },
+                    { time: totalTime - 4800, message: '應已完成「結構段四」' },
                     { time: 0, message: '時間到，練習結束' }
                 ];
             }
-        } else if (genre === '議論') {
-            prompts = [
-                { time: totalTime - 900, message: '應已完成大綱' },
-                { time: totalTime - 1500, message: '應已完成「起」' },
-                { time: totalTime - 2100, message: '應已完成「結構段一」' },
-                { time: totalTime - 3000, message: '應已完成「結構段二」' },
-                { time: totalTime - 3900, message: '應已完成「結構段三」' },
-                { time: totalTime - 4800, message: '應已完成「結構段四」' },
-                { time: 0, message: '時間到，練習結束' }
-            ];
+            promptIndex = 0;
         }
-        promptIndex = 0;
-    }
 
-    function checkPrompts() {
-        if (promptIndex < prompts.length && remainingTime <= prompts[promptIndex].time) {
-            document.getElementById('timer-message').textContent = prompts[promptIndex].message;
-            promptIndex++;
+        function checkPrompts() {
+            if (promptIndex < prompts.length && remainingTime <= prompts[promptIndex].time) {
+                document.getElementById('timer-message').textContent = prompts[promptIndex].message;
+                promptIndex++;
+            }
         }
-    }
 
-    document.getElementById('toggle-timer').addEventListener('click', toggleTimer);
-    document.getElementById('reset-timer').addEventListener('click', resetTimer);
-    document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
-    document.getElementById('structure-select').addEventListener('change', resetTimer);
+        document.getElementById('toggle-timer').addEventListener('click', toggleTimer);
+        document.getElementById('reset-timer').addEventListener('click', resetTimer);
+        document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
+        document.getElementById('structure-select').addEventListener('change', resetTimer);
     </script>
 </body>
 </html>
