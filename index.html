@@ -567,133 +567,151 @@
             wordCountDiv.textContent = `字數：${totalWords}`;
         }
 
-        function addPage() {
-            pageCount++;
-            const rows = getRows(pageCount);
-            const cols = getCols();
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'page';
-            if (isEyeProtection) pageDiv.classList.add('eye-protection');
-            pageDiv.dataset.page = pageCount;
-            const title = document.createElement('div');
-            title.className = 'title';
-            const titleInput = document.getElementById('title-input');
-            title.textContent = titleInput.value.trim() || '中文寫作';
-            pageDiv.appendChild(title);
-            const table = document.createElement('table');
-            table.className = 'grid';
-            for (let row = 1; row <= rows; row++) {
-                const tr = document.createElement('tr');
-                for (let col = 1; col <= cols; col++) {
-                    const td = document.createElement('td');
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.dataset.page = pageCount;
-                    input.dataset.row = row;
-                    input.dataset.col = col;
-                    input.addEventListener('compositionstart', function() { this.isComposing = true; });
-                    input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
-                    input.addEventListener('input', function() { if (!this.isComposing) handleInput(this); });
-                    input.addEventListener('keydown', function(e) {
-                        if (e.key === 'Backspace' && this.value === '') {
-                            moveToPrevInput(this);
-                            updateWordCount();
-                        }
-                    });
-                    input.addEventListener('paste', function(e) {
-                        e.preventDefault();
-                        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-                        const currentInput = this;
-                        const selectionStart = currentInput.selectionStart;
-                        const allInputs = getAllInputs();
-                        const currentIndex = allInputs.indexOf(currentInput);
-                        let insertIndex;
-                        if (selectionStart === 0) {
-                            insertIndex = currentIndex;
-                        } else if (selectionStart === 1) {
-                            insertIndex = currentIndex + 1;
-                        } else {
-                            return;
-                        }
-                        const arr = allInputs.map(input => input.value || '');
-                        const pastedChars = pastedText.split('');
-                        arr.splice(insertIndex, 0, ...pastedChars);
-                        let inputIndex = 0;
-                        for (let page = 1; page <= pageCount; page++) {
-                            const rows = getRows(page);
-                            const cols = getCols();
-                            for (let row = 1; row <= rows; row++) {
-                                for (let col = 1; col <= cols; col++) {
-                                    if (inputIndex < arr.length) {
-                                        const input = allInputs[inputIndex];
-                                        input.value = arr[inputIndex];
-                                        inputIndex++;
-                                    } else {
-                                        const input = allInputs[inputIndex];
-                                        input.value = '';
-                                        inputIndex++;
-                                    }
-                                }
-                            }
-                        }
-                        while (inputIndex < arr.length) {
-                            addPage();
-                            allInputs = getAllInputs();
-                            for (let i = inputIndex; i < allInputs.length && i < arr.length; i++) {
-                                allInputs[i].value = arr[i];
+       function addPage() {
+    pageCount++;
+    const rows = getRows(pageCount);
+    const cols = getCols();
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'page';
+    if (isEyeProtection) pageDiv.classList.add('eye-protection');
+    pageDiv.dataset.page = pageCount;
+    const title = document.createElement('div');
+    title.className = 'title';
+    const titleInput = document.getElementById('title-input');
+    title.textContent = titleInput.value.trim() || '中文寫作';
+    pageDiv.appendChild(title);
+    const table = document.createElement('table');
+    table.className = 'grid';
+    for (let row = 1; row <= rows; row++) {
+        const tr = document.createElement('tr');
+        for (let col = 1; col <= cols; col++) {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.page = pageCount;
+            input.dataset.row = row;
+            input.dataset.col = col;
+            input.addEventListener('compositionstart', function() { this.isComposing = true; });
+            input.addEventListener('compositionend', function() { this.isComposing = false; handleInput(this); });
+            // 記錄光標初始位置
+            input.addEventListener('keydown', function(e) {
+                if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    this.initialSelectionStart = this.selectionStart;
+                }
+            });
+            // 根據光標位置調整行為
+            input.addEventListener('input', function() {
+                if (!this.isComposing) {
+                    handleInput(this);
+                    if (this.value.length === 1 && this.initialSelectionStart === 0) {
+                        this.setSelectionRange(1, 1); // 插入時光標留在當前輸入框
+                    }
+                    delete this.initialSelectionStart;
+                }
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '') {
+                    moveToPrevInput(this);
+                    updateWordCount();
+                }
+            });
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const currentInput = this;
+                const selectionStart = currentInput.selectionStart;
+                const allInputs = getAllInputs();
+                const currentIndex = allInputs.indexOf(currentInput);
+                let insertIndex;
+                if (selectionStart === 0) {
+                    insertIndex = currentIndex;
+                } else if (selectionStart === 1) {
+                    insertIndex = currentIndex + 1;
+                } else {
+                    return;
+                }
+                const arr = allInputs.map(input => input.value || '');
+                const pastedChars = pastedText.split('');
+                arr.splice(insertIndex, 0, ...pastedChars);
+                let inputIndex = 0;
+                for (let page = 1; page <= pageCount; page++) {
+                    const rows = getRows(page);
+                    const cols = getCols();
+                    for (let row = 1; row <= rows; row++) {
+                        for (let col = 1; col <= cols; col++) {
+                            if (inputIndex < arr.length) {
+                                const input = allInputs[inputIndex];
+                                input.value = arr[inputIndex];
+                                inputIndex++;
+                            } else {
+                                const input = allInputs[inputIndex];
+                                input.value = '';
                                 inputIndex++;
                             }
                         }
-                        updateWordCount();
-                        const newFocusIndex = Math.min(insertIndex + pastedChars.length, allInputs.length - 1);
-                        allInputs[newFocusIndex].focus();
-                    });
-                    td.appendChild(input);
-                    tr.appendChild(td);
+                    }
                 }
-                table.appendChild(tr);
-            }
-            pageDiv.appendChild(table);
-            manuscript.appendChild(pageDiv);
-            updateWordCount();
+                while (inputIndex < arr.length) {
+                    addPage();
+                    allInputs = getAllInputs();
+                    for (let i = inputIndex; i < allInputs.length && i < arr.length; i++) {
+                        allInputs[i].value = arr[i];
+                        inputIndex++;
+                    }
+                }
+                updateWordCount();
+                const newFocusIndex = Math.min(insertIndex + pastedChars.length, allInputs.length - 1);
+                allInputs[newFocusIndex].focus();
+            });
+            td.appendChild(input);
+            tr.appendChild(td);
         }
+        table.appendChild(tr);
+    }
+    pageDiv.appendChild(table);
+    manuscript.appendChild(pageDiv);
+    updateWordCount();
+}
 
         function handleInput(currentInput) {
-            const value = currentInput.value;
-            if (value.length > 1) {
-                const chars = value.split('');
-                let input = currentInput;
-                for (let i = 0; i < chars.length; i++) {
-                    if (i > 0) {
-                        let nextInput = getNextInput(input);
-                        if (!nextInput) {
-                            addPage();
-                            nextInput = getNextInput(input);
-                        }
-                        let tempInput = nextInput;
-                        let tempValue = tempInput.value;
-                        while (tempInput) {
-                            const nextTempInput = getNextInput(tempInput);
-                            const currentValue = tempInput.value;
-                            tempInput.value = tempValue;
-                            tempValue = currentValue;
-                            tempInput = nextTempInput;
-                            if (!tempInput || tempValue === '') break;
-                        }
-                        input = nextInput;
-                    }
-                    input.value = chars[i];
-                    updateWordCount();
+    const value = currentInput.value;
+    if (value.length > 1) {
+        const chars = value.split('');
+        let input = currentInput;
+        for (let i = 0; i < chars.length; i++) {
+            if (i > 0) {
+                let nextInput = getNextInput(input);
+                if (!nextInput) {
+                    addPage();
+                    nextInput = getNextInput(input);
                 }
-                if (input) input.focus();
-            } else if (value.length === 1) {
-                updateWordCount();
-                let nextInput = getNextInput(currentInput);
-                if (nextInput) nextInput.focus();
-            } else {
-                updateWordCount();
+                let tempInput = nextInput;
+                let tempValue = tempInput.value;
+                while (tempInput) {
+                    const nextTempInput = getNextInput(tempInput);
+                    const currentValue = tempInput.value;
+                    tempInput.value = tempValue;
+                    tempValue = currentValue;
+                    tempInput = nextTempInput;
+                    if (!tempInput || tempValue === '') break;
+                }
+                input = nextInput;
             }
+            input.value = chars[i];
+            updateWordCount();
         }
+        if (input) input.focus();
+    } else if (value.length === 1) {
+        updateWordCount();
+        // 若為末尾添加，光標移動到下一個輸入框
+        if (currentInput.initialSelectionStart !== 0) {
+            let nextInput = getNextInput(currentInput);
+            if (nextInput) nextInput.focus();
+        }
+    } else {
+        updateWordCount();
+    }
+}
 
         function getNextInput(currentInput) {
             let currentPage = parseInt(currentInput.dataset.page);
