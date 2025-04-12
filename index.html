@@ -1,10 +1,3 @@
-現在有兩個問題：
-
-現在貼上文字後，不管甚麼情況都會自動另開新頁，請取消這個設定，貼上文字時，不要另開新頁。只有用家點選「新增頁面」，或已輸入到一頁的最後一個方格，才需要自動開新頁。此外，當用家在空格點選刪除時，除了前一格的文字會被刪除外，空格後面的所有方格的文字亦應移前。
-
-請必須及強制保護現有所有功能不受影響，包括輸入文字及其界面正常顯示、呼喚API、播放音樂等。 修訂後請輸出整個工具完整的、連續的函數，不要有任何省略。
-
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -613,6 +606,7 @@
                         const currentInput = this;
                         const selectionStart = currentInput.selectionStart;
                         const allInputs = getAllInputs();
+                        const N = allInputs.length;
                         const currentIndex = allInputs.indexOf(currentInput);
                         let insertIndex;
                         if (selectionStart === 0) {
@@ -622,37 +616,14 @@
                         } else {
                             return;
                         }
-                        const arr = allInputs.map(input => input.value || '');
                         const pastedChars = pastedText.split('');
-                        arr.splice(insertIndex, 0, ...pastedChars);
-                        let inputIndex = 0;
-                        for (let page = 1; page <= pageCount; page++) {
-                            const rows = getRows(page);
-                            const cols = getCols();
-                            for (let row = 1; row <= rows; row++) {
-                                for (let col = 1; col <= cols; col++) {
-                                    if (inputIndex < arr.length) {
-                                        const input = allInputs[inputIndex];
-                                        input.value = arr[inputIndex];
-                                        inputIndex++;
-                                    } else {
-                                        const input = allInputs[inputIndex];
-                                        input.value = '';
-                                        inputIndex++;
-                                    }
-                                }
-                            }
-                        }
-                        while (inputIndex < arr.length) {
-                            addPage();
-                            allInputs = getAllInputs();
-                            for (let i = inputIndex; i < allInputs.length && i < arr.length; i++) {
-                                allInputs[i].value = arr[i];
-                                inputIndex++;
-                            }
+                        const arr = allInputs.map(input => input.value || '');
+                        const newArr = [...arr.slice(0, insertIndex), ...pastedChars, ...arr.slice(insertIndex)].slice(0, N);
+                        for (let i = 0; i < N; i++) {
+                            allInputs[i].value = newArr[i] || '';
                         }
                         updateWordCount();
-                        const newFocusIndex = Math.min(insertIndex + pastedChars.length, allInputs.length - 1);
+                        const newFocusIndex = Math.min(insertIndex + pastedChars.length, N - 1);
                         allInputs[newFocusIndex].focus();
                     });
                     td.appendChild(input);
@@ -717,7 +688,7 @@
                 if (nextRow > rows) {
                     nextRow = 1;
                     nextPage = currentPage + 1;
-                    if (nextPage > pageCount) addPage();
+                    if (nextPage > pageCount) return null;
                 }
             }
             return document.querySelector(
@@ -726,27 +697,15 @@
         }
 
         function moveToPrevInput(currentInput) {
-            let currentPage = parseInt(currentInput.dataset.page);
-            let currentRow = parseInt(currentInput.dataset.row);
-            let currentCol = parseInt(currentInput.dataset.col);
-            let prevCol = currentCol - 1;
-            let prevRow = currentRow;
-            let prevPage = currentPage;
-            const cols = getCols();
-            if (prevCol < 1) {
-                prevCol = cols;
-                prevRow = currentRow - 1;
-                if (prevRow < 1) {
-                    prevRow = getRows(currentPage - 1);
-                    prevPage = currentPage - 1;
-                    if (prevPage < 1) return;
-                }
-            }
-            const prevInput = document.querySelector(
-                `input[data-page="${prevPage}"][data-row="${prevRow}"][data-col="${prevCol}"]`
-            );
-            if (prevInput) {
+            const allInputs = getAllInputs();
+            const currentIndex = allInputs.indexOf(currentInput);
+            if (currentIndex > 0) {
+                const prevInput = allInputs[currentIndex - 1];
                 prevInput.value = '';
+                for (let i = currentIndex; i < allInputs.length - 1; i++) {
+                    allInputs[i].value = allInputs[i + 1].value;
+                }
+                allInputs[allInputs.length - 1].value = '';
                 prevInput.focus();
             }
         }
