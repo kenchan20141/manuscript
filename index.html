@@ -221,6 +221,13 @@
             display: flex;
             justify-content: space-between;
         }
+        .response-container {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
         .table-container {
             overflow-x: auto;
             width: 100%;
@@ -1135,50 +1142,55 @@
             }
         }
 
-        document.getElementById('submit-question').addEventListener('click', async function() {
-            const category = document.getElementById('category').value;
-            const tone = document.getElementById('tone').value;
-            const question = document.getElementById('question').value.trim();
-            if (!question) {
-                alert('請輸入您的問題');
-                return;
-            }
+       document.getElementById('submit-question').addEventListener('click', async function() {
+    const category = document.getElementById('category').value;
+    const tone = document.getElementById('tone').value;
+    const question = document.getElementById('question').value.trim();
+    if (!question) {
+        alert('請輸入您的問題');
+        return;
+    }
 
-            const manuscriptContent = getManuscriptContent();
-            const title = getTitleFromInput();
+    const manuscriptContent = getManuscriptContent();
+    const title = getTitleFromInput();
 
-            let outlineData = '';
-            if (category === '敘事抒情') outlineData = getNarrativeOutlineData();
-            else if (category === '議論') outlineData = getArgumentOutlineData();
+    let outlineData = '';
+    if (category === '敘事抒情') outlineData = getNarrativeOutlineData();
+    else if (category === '議論') outlineData = getArgumentOutlineData();
 
-            let prompt = `學生正在撰寫一篇${category}文章，題目是「${title}」。以下是學生已寫的內容：\n${manuscriptContent}\n\n以下是大綱內容：\n${outlineData}\n\n學生的問題是：${question}\n\n請根據學生的問題和文章內容，提供簡潔的回應，不超過100字。`;
+    let prompt = `學生正在撰寫一篇${category}文章，題目是「${title}」。以下是學生已寫的內容：\n${manuscriptContent}\n\n以下是大綱內容：\n${outlineData}\n\n學生的問題是：${question}\n\n請根據學生的問題和文章內容，提供簡潔的回應，不超過100字。`;
 
-            if (category === '敘事抒情') {
-                prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
-            } else if (category === '議論') {
-                prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
-            }
+    if (category === '敘事抒情') {
+        prompt += `\n\n參考筆記：必須用繁體字回應，必須因應用家選擇的結構（即「起承轉合」或「三線」）去回應，當用家選擇「起承轉合」，則不要以「三線」思維回應，反之亦然。敘事抒情文佳作有以下特點：一、結構段重點與題目有嚴謹的邏輯關係；二、情節大要能突顯結構段重點；三，詳略剪裁恰當；四，文句密度合適（詞匯豐富、實詞為主而虛詞為副，但過猶不及，適時需要運用虛詞令文句錯落有致）；五，須運用豐富物象增強故事生動性和真實感，物象應與題目緊密相關，表達情感與主題。應交替使用小物件、動作、對話和內心獨白，應避免以主角的身體部份作為主語或小物件，要提高文句密度，但需控制詳略節奏，詳寫相關部分，略寫次要內容；六，三線，即所謂「散敘」，有以下四點要注意：其一，三線的分類範疇相同；其二，三線或有層遞關係，或能從三個角度呈現同一個主題；其三，三線的情節發展不能過於相似；其四，所分之角度能突顯與主題相關的立意。「三線」例子如下：題目為「勇氣」，則可用「年少時的勇氣」為一線、「年青時的勇氣」為二線、「年老時的勇氣」為三線；又如以「重遊舊地所見有感」，則可用在故鄉的不同「地」所見作三線分類，例如老屋、後山等。必須確保每條線的「結構段重點」清晰點明三線的分類範疇、想突顯題目的甚麼要點、與題目如何扣連等，以及「合」能統攝總結全文立意`;
+    } else if (category === '議論') {
+        prompt += `\n\n參考筆記：必須用繁體字回應。議論文佳作有以下特點：內容必須扣題，而且：1. 論點清晰明確，直接回應題目；2. 論據與論點嚴謹扣連，引例涵蓋古今中外；3. 段內論據的詳略有幾種模式：兩個詳的論據，或一詳數略，或數略，因應段落論述需要而定，以製造變化；4. 論證合理、具體、嚴謹，能解釋論據與論點的關係；5. 文句密度需適中，適時用排比和比喻，虛詞放緩節奏。`;
+    }
 
-            if (tone === 'chen') prompt += `\n\n請用陳SIR的語氣回應，輕鬆隨意，多用EMOJI，偶爾使用網絡用語。`;
-            else prompt += `\n\n請用嚴肅正經的語氣回應。`;
+    if (tone === 'chen') prompt += `\n\n請用陳SIR的語氣回應，輕鬆隨意，多用EMOJI，偶爾使用網絡用語。`;
+    else prompt += `\n\n請用嚴肅正經的語氣回應。`;
 
-            prompt += `\n\n請直接提供最終答案，不包含任何思考過程或標籤。`;
+    prompt += `\n\n請直接提供最終答案，不包含任何思考過程或標籤。`;
 
-            document.getElementById('response').innerHTML = '陳SIR正在思考...';
-            document.getElementById('submit-question').disabled = true;
+    document.getElementById('response').innerHTML = '陳SIR正在思考...';
+    document.getElementById('submit-question').disabled = true;
 
-            try {
-                const response = await callAPI(prompt);
-                document.getElementById('response').innerHTML = response;
-            } catch (error) {
-                console.error('提交問題時出錯:', error);
-                if (error.message === '所有 API 密鑰均無法使用') alert('今日 API 調用次數已用完或API無法連接，請明天再試');
-                else alert('回應生成失敗，請重試');
-                document.getElementById('response').innerHTML = '';
-            } finally {
-                document.getElementById('submit-question').disabled = false;
-            }
-        });
+    try {
+        const response = await callAPI(prompt);
+        document.getElementById('response').innerHTML = `
+            <div class="response-container">
+                <h3>陳SIR回應：</h3>
+                <p>${response}</p>
+            </div>
+        `;
+    } catch (error) {
+        console.error('提交問題時出錯:', error);
+        if (error.message === '所有 API 密鑰均無法使用') alert('今日 API 調用次數已用完或API無法連接，請明天再試');
+        else alert('回應生成失敗，請重試');
+        document.getElementById('response').innerHTML = '';
+    } finally {
+        document.getElementById('submit-question').disabled = false;
+    }
+});
 
         function getNarrativeOutlineData() {
             const table = document.getElementById('narrativeOutlineTable');
