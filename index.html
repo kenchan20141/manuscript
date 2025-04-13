@@ -54,6 +54,11 @@
         .ask-btn:hover {
             background-color: #E64A19;
         }
+        #manuscript {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
         .page {
             margin: 0 auto 10px;
             padding: 10px;
@@ -98,6 +103,14 @@
         .grid input:focus {
             border: 1px solid #4CAF50;
         }
+        #function-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+#function-buttons.hidden {
+    display: none;
+}
         #word-count {
             text-align: center;
             font-size: 14px;
@@ -405,8 +418,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body>
-    <div id="controls">
+<div id="controls">
+    <button id="toggle-controls">隱藏功能鍵</button>
+    <div id="function-buttons">
         <div class="button-group">
             <button id="save" class="action-btn">儲存</button>
             <button id="clear" class="action-btn">清空</button>
@@ -416,6 +430,11 @@
             <button id="eye-protection" class="action-btn">護眼模式</button>
             <button id="ask-chen" class="ask-btn">👨‍🏫向陳SIR發問</button>
         </div>
+        <div style="text-align: center; margin-top: 10px;">
+            <input type="text" id="title-input" placeholder="請輸入題目">
+        </div>
+    </div>
+</div>
         <div style="text-align: center; margin-top: 10px;">
             <input type="text" id="title-input" placeholder="請輸入題目">
         </div>
@@ -1477,6 +1496,11 @@
         document.getElementById('reset-timer').addEventListener('click', resetTimer);
         document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
         document.getElementById('structure-select').addEventListener('change', resetTimer);
+        document.getElementById('toggle-controls').addEventListener('click', function() {
+            const functionButtons = document.getElementById('function-buttons');
+            functionButtons.classList.toggle('hidden');
+            this.textContent = functionButtons.classList.contains('hidden') ? '展開功能鍵' : '隱藏功能鍵';
+        });
     </script>
 </body>
 </html>
