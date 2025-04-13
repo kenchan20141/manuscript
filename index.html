@@ -17,7 +17,6 @@
             overflow: auto;
         }
         #controls {
-            display: none;
             text-align: center;
             margin-bottom: 10px;
         }
@@ -56,11 +55,6 @@
         }
         .ask-btn:hover {
             background-color: #E64A19;
-        }
-        #manuscript {
-            margin: 0 auto;
-            width: 100%;
-            max-width: 600px;
         }
         .page {
             margin: 0 auto 10px;
@@ -364,6 +358,10 @@
             #music-player .mode select {
                 font-size: 12px;
             }
+            .page {
+                max-width: calc(100% - 20px);
+                margin: 0 10px 10px;
+            }
         }
         #timer-panel {
             position: fixed;
@@ -414,7 +412,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <button id="toggle-controls" style="position: absolute; top: 10px; left: 10px; font-size: 24px; background: none; border: none; cursor: pointer;">≡</button>
     <div id="controls">
         <div class="button-group">
             <button id="save" class="action-btn">儲存</button>
@@ -1486,12 +1483,6 @@
         document.getElementById('reset-timer').addEventListener('click', resetTimer);
         document.getElementById('genre-select').addEventListener('change', toggleStructureSelect);
         document.getElementById('structure-select').addEventListener('change', resetTimer);
-
-        // 添加展開/隱藏功能鍵的邏輯
-        document.getElementById('toggle-controls').addEventListener('click', function() {
-            const controls = document.getElementById('controls');
-            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
-        });
     </script>
 </body>
 </html>
