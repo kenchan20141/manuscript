@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -902,32 +904,21 @@
         });
 
         const eyeProtectionBtn = document.getElementById('eye-protection');
-eyeProtectionBtn.addEventListener('click', function() {
-    isEyeProtection = !isEyeProtection;
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => {
-        if (isEyeProtection) {
-            page.style.backgroundImage = "url('https://i.ibb.co/mVLsMwfj/6.png')";
-        } else {
-            page.style.backgroundImage = "url('https://i.ibb.co/C3tJmz4L/7.png')";
-        }
-    });
-    localStorage.setItem('eyeProtection', isEyeProtection);
-});
+        eyeProtectionBtn.addEventListener('click', function() {
+            isEyeProtection = !isEyeProtection;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => {
+                if (isEyeProtection) page.classList.add('eye-protection');
+                else page.classList.remove('eye-protection');
+            });
+            localStorage.setItem('eyeProtection', isEyeProtection);
+        });
 
-// 頁面載入時設置背景
-if (localStorage.getItem('eyeProtection') === 'true') {
-    isEyeProtection = true;
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => {
-        page.style.backgroundImage = "url('https://i.ibb.co/mVLsMwfj/6.png')";
-    });
-} else {
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => {
-        page.style.backgroundImage = "url('https://i.ibb.co/C3tJmz4L/7.png')";
-    });
-}
+        if (localStorage.getItem('eyeProtection') === 'true') {
+            isEyeProtection = true;
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.add('eye-protection'));
+        }
 
         document.getElementById('export-pdf').addEventListener('click', async function() {
             progressOverlay.style.display = 'flex';
