@@ -1043,6 +1043,12 @@ function autoSave() {
     console.log('自動保存成功');
 }
 
+        // 手動儲存按鈕的事件監聽器
+    document.getElementById('save').addEventListener('click', function() {
+        autoSave();
+        alert('文章已儲存');
+    });
+
 
         
         function generateOutlineTable() {
