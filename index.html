@@ -19,24 +19,25 @@
             overflow: auto;
         }
 
- .copyright-footer {
-            position: fixed;
-            bottom: 0;
-            right: 0;
-            padding: 5px 10px;
-            background-color: #f1f1f1;
-        }
+.copyright-footer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: 5px 10px;
+    background-color: #f1f1f1;
+    z-index: 1000;  /* 確保顯示在其他元素之上 */
+}
 
-        .copyright-footer p {
-            margin: 0;
-            font-size: 14px;
-        }
+.copyright-footer p {
+    margin: 0;
+    font-size: 14px;
+}
 
-        @media (max-width: 600px) {
-            .copyright-footer p {
-                font-size: 12px;
-            }
-        }
+@media (max-width: 600px) {
+    .copyright-footer p {
+        font-size: 12px;
+    }
+}
 
         
         #controls {
